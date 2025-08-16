@@ -2,9 +2,9 @@ import { Flex, Checkbox, Input, Layout, Card, Space, Form, Button, Alert } from 
 import { Content } from "antd/es/layout/layout";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Credentials } from "../../types";
-import { login } from "../../http/api";
+import { login, self } from "../../http/api";
 
 const loginUser = async (credentials: Credentials) => {
     // Server call logic
@@ -12,11 +12,26 @@ const loginUser = async (credentials: Credentials) => {
     return data;
 };
 
+const getSelf = async () => {
+    const data = await self();
+    return data;
+};
+
 const LoginPage = () => {
+    const { data: selfData, refetch } = useQuery({
+        queryKey: ["self"],
+        queryFn: getSelf,
+        enabled: false,
+    });
+
     const { mutate, isPending, isError, error } = useMutation({
         mutationKey: ["login"],
         mutationFn: loginUser,
         onSuccess: async () => {
+            // getself
+            await refetch();
+            console.log("User Data", selfData);
+            // store in the state
             console.log("Login Successful");
         },
     });
@@ -49,7 +64,6 @@ const LoginPage = () => {
                                 initialValues={{ remember: true }}
                                 onFinish={(values) => {
                                     mutate({ email: values.email, password: values.password });
-                                    console.log(values);
                                 }}
                             >
                                 {isError && <Alert type="error" message={error.message} />}
