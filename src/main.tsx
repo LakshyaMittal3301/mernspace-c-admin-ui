@@ -11,6 +11,12 @@ import "./index.css";
 import { router } from "./router";
 import { queryClient } from "./lib/queryClient";
 import { appTheme } from "./ui/theme";
+import { attachAuthInterceptor } from "./http/client";
+import { useAuthStore } from "./store";
+
+attachAuthInterceptor(() => {
+    useAuthStore.getState().logout();
+});
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>

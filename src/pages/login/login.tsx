@@ -2,7 +2,7 @@ import { Flex, Checkbox, Input, Layout, Card, Space, Form, Button, Alert } from 
 import { Content } from "antd/es/layout/layout";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../store";
 import { usePermission } from "../../hooks/usePermission";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -55,6 +55,7 @@ const LoginPage = () => {
             navigate(from, { replace: true });
         } catch {}
     };
+
     return (
         <>
             <Layout style={{ minHeight: "100vh" }}>
