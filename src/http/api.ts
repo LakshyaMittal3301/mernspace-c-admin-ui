@@ -1,7 +1,15 @@
-import type { Credentials } from "../types";
+import type { Credentials, User } from "../types";
 import { api } from "./client";
 
 // Auth service
-export const login = (credentials: Credentials) => api.post("/auth/login", credentials);
-export const self = () => api.get("/auth/self");
-export const logout = () => api.post("/auth/logout");
+export const login = async (credentials: Credentials): Promise<void> => {
+    await api.post("/auth/login", credentials);
+};
+
+export const self = async (): Promise<User> => {
+    const { data } = await api.get<User>("/auth/self");
+    return data;
+};
+export const logout = async (): Promise<void> => {
+    await api.post("/auth/logout");
+};

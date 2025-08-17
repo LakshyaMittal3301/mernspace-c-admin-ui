@@ -4,11 +4,12 @@ import { Suspense } from "react";
 import { PageLoader } from "../ui/PageLoader";
 
 const Auth = () => {
-    const { user } = useAuthStore();
+    const user = useAuthStore((s) => s.user);
+    const hydrated = useAuthStore((s) => s.hydrated);
 
-    if (user !== null) {
-        return <Navigate to="/" replace={true} />;
-    }
+    if (!hydrated) return <PageLoader />;
+
+    if (user) return <Navigate to="/" replace />;
 
     return (
         <div>

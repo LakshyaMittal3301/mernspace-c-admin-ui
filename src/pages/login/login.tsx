@@ -2,61 +2,59 @@ import { Flex, Checkbox, Input, Layout, Card, Space, Form, Button, Alert } from 
 import { Content } from "antd/es/layout/layout";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type { Credentials } from "../../types";
-import { login, logout, self } from "../../http/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../store";
 import { usePermission } from "../../hooks/usePermission";
-
-const loginUser = async (credentials: Credentials) => {
-    const { data } = await login(credentials);
-    return data;
-};
-
-const getSelf = async () => {
-    const { data } = await self();
-    return data;
-};
-
-const logoutUser = async () => {
-    await logout();
-};
+import { useLocation, useNavigate } from "react-router-dom";
+import { login, logout, self } from "../../http/api";
+import type { Credentials, User } from "../../types";
 
 const LoginPage = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const { isAllowed } = usePermission();
-    const { setUser, logout: logoutFromStore } = useAuthStore();
-    const { refetch } = useQuery({
-        queryKey: ["self"],
-        queryFn: getSelf,
-        enabled: false,
-    });
-
-    const { mutate: logoutMutate } = useMutation({
-        mutationKey: ["logout"],
-        mutationFn: logoutUser,
-        onSuccess: async () => {
-            logoutFromStore();
-        },
-    });
+    const setUser = useAuthStore((s) => s.setUser);
+    const logoutFromStore = useAuthStore((s) => s.logout);
+    const queryClient = useQueryClient();
 
     const {
-        mutate: loginMutate,
-        isPending,
-        isError,
-        error,
+        mutateAsync: loginMutateAsync,
+        isPending: isLoggingIn,
+        isError: isLoginError,
+        error: loginError,
     } = useMutation({
         mutationKey: ["login"],
-        mutationFn: loginUser,
-        onSuccess: async () => {
-            const { data } = await refetch();
-            if (!isAllowed(data)) {
-                logoutMutate();
-                return;
-            }
-            setUser(data);
-        },
+        mutationFn: login,
     });
 
+    const { mutateAsync: logoutMutateAsync } = useMutation({
+        mutationKey: ["logout"],
+        mutationFn: logout,
+        onSuccess: () => logoutFromStore(),
+    });
+
+    const onFinish = async (values: { email: string; password: string }) => {
+        const creds: Credentials = { email: values.email, password: values.password };
+
+        try {
+            await loginMutateAsync(creds);
+
+            await queryClient.invalidateQueries({ queryKey: ["self"] });
+            const user = await queryClient.fetchQuery<User>({
+                queryKey: ["self"],
+                queryFn: self,
+            });
+
+            if (!isAllowed(user)) {
+                await logoutMutateAsync();
+                return;
+            }
+
+            setUser(user);
+            const from = (location.state as any)?.from?.pathname ?? "/";
+            navigate(from, { replace: true });
+        } catch {}
+    };
     return (
         <>
             <Layout style={{ minHeight: "100vh" }}>
@@ -83,11 +81,11 @@ const LoginPage = () => {
                             <Form
                                 name="login-form"
                                 initialValues={{ remember: true }}
-                                onFinish={(values) => {
-                                    loginMutate({ email: values.email, password: values.password });
-                                }}
+                                onFinish={onFinish}
                             >
-                                {isError && <Alert type="error" message={error.message} />}
+                                {isLoginError && (
+                                    <Alert type="error" message={(loginError as Error).message} />
+                                )}
                                 <Form.Item
                                     name="email"
                                     rules={[
@@ -134,7 +132,7 @@ const LoginPage = () => {
                                         block
                                         type="primary"
                                         htmlType="submit"
-                                        loading={isPending}
+                                        loading={isLoggingIn}
                                     >
                                         Log in
                                     </Button>

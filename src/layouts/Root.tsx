@@ -1,38 +1,29 @@
-import { Suspense, useEffect } from "react";
 import { Outlet } from "react-router";
 import { self } from "../http/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store";
-import { PageLoader } from "../ui/PageLoader";
-
-const getSelf = async () => {
-    const { data } = await self();
-    return data;
-};
+import { useEffect } from "react";
 
 const Root = () => {
-    const { setUser } = useAuthStore();
+    const setUser = useAuthStore((s) => s.setUser);
+    const setHydrated = useAuthStore((s) => s.setHydrated);
 
-    const { data, isLoading } = useQuery({
+    const { data, isSuccess, isError } = useQuery({
         queryKey: ["self"],
-        queryFn: getSelf,
+        queryFn: self,
+        retry: 0,
     });
 
     useEffect(() => {
-        if (data) {
+        if (isSuccess && data) {
             setUser(data);
+            setHydrated(true);
+        } else if (isError) {
+            setHydrated(true);
         }
-    }, [data, setUser]);
+    }, [isSuccess, isError, data, setUser, setHydrated]);
 
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
-
-    return (
-        <Suspense fallback={<PageLoader />}>
-            <Outlet />
-        </Suspense>
-    );
+    return <Outlet />;
 };
 
 export default Root;
