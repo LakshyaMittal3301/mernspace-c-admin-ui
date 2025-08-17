@@ -1,5 +1,7 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuthStore } from "../store";
+import { Suspense } from "react";
+import { PageLoader } from "../ui/PageLoader";
 
 const Auth = () => {
     const { user } = useAuthStore();
@@ -11,7 +13,9 @@ const Auth = () => {
     return (
         <div>
             <h1>Auth</h1>
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+                <Outlet />
+            </Suspense>
         </div>
     );
 };

@@ -1,5 +1,7 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuthStore } from "../store";
+import { Suspense } from "react";
+import { PageLoader } from "../ui/PageLoader";
 
 const Dashboard = () => {
     const { user } = useAuthStore();
@@ -10,7 +12,9 @@ const Dashboard = () => {
     return (
         <div>
             <h1>Dashboard</h1>
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+                <Outlet />
+            </Suspense>{" "}
         </div>
     );
 };

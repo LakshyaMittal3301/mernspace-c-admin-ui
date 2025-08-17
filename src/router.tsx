@@ -1,34 +1,32 @@
 import { createBrowserRouter } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/login/login";
 import Dashboard from "./layouts/Dashboard";
 import Auth from "./layouts/Auth";
 import Root from "./layouts/Root";
+
+import { dashboardChildren } from "./routes/dashboard.routes";
+import { authChildren } from "./routes/auth.routes";
+
+const NotFound = () => <div>404 - Not Found</div>;
+const ErrorBoundary = () => <div>Something went wrong</div>;
 
 export const router = createBrowserRouter([
     {
         path: "/",
         element: <Root />,
+        errorElement: <ErrorBoundary />,
         children: [
             {
-                path: "",
                 element: <Dashboard />,
-                children: [
-                    {
-                        path: "",
-                        element: <HomePage />,
-                    },
-                ],
+                children: dashboardChildren,
             },
             {
-                path: "/auth",
+                path: "auth",
                 element: <Auth />,
-                children: [
-                    {
-                        path: "login",
-                        element: <LoginPage />,
-                    },
-                ],
+                children: authChildren,
+            },
+            {
+                path: "*",
+                element: <NotFound />,
             },
         ],
     },

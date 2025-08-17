@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Outlet } from "react-router";
 import { self } from "../http/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store";
+import { PageLoader } from "../ui/PageLoader";
 
 const getSelf = async () => {
     const { data } = await self();
@@ -27,7 +28,11 @@ const Root = () => {
         return <div>Loading...</div>;
     }
 
-    return <Outlet />;
+    return (
+        <Suspense fallback={<PageLoader />}>
+            <Outlet />
+        </Suspense>
+    );
 };
 
 export default Root;
