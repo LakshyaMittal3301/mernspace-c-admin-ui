@@ -18,6 +18,10 @@ const getSelf = async () => {
     return data;
 };
 
+const logoutUser = async () => {
+    await logout();
+};
+
 const LoginPage = () => {
     const { isAllowed } = usePermission();
     const { setUser, logout: logoutFromStore } = useAuthStore();
@@ -27,14 +31,26 @@ const LoginPage = () => {
         enabled: false,
     });
 
-    const { mutate, isPending, isError, error } = useMutation({
+    const { mutate: logoutMutate } = useMutation({
+        mutationKey: ["logout"],
+        mutationFn: logoutUser,
+        onSuccess: async () => {
+            logoutFromStore();
+        },
+    });
+
+    const {
+        mutate: loginMutate,
+        isPending,
+        isError,
+        error,
+    } = useMutation({
         mutationKey: ["login"],
         mutationFn: loginUser,
         onSuccess: async () => {
             const { data } = await refetch();
             if (!isAllowed(data)) {
-                await logout();
-                logoutFromStore();
+                logoutMutate();
                 return;
             }
             setUser(data);
@@ -68,7 +84,7 @@ const LoginPage = () => {
                                 name="login-form"
                                 initialValues={{ remember: true }}
                                 onFinish={(values) => {
-                                    mutate({ email: values.email, password: values.password });
+                                    loginMutate({ email: values.email, password: values.password });
                                 }}
                             >
                                 {isError && <Alert type="error" message={error.message} />}
