@@ -2,7 +2,7 @@ import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { useAuthStore } from "../stores/auth";
 import { Suspense, useState } from "react";
 import { PageLoader } from "../ui/PageLoader";
-import { Layout, Menu, theme, type MenuProps } from "antd";
+import { Layout, Menu, theme, type MenuProps, Space } from "antd";
 
 const { Content, Footer, Header, Sider } = Layout;
 
@@ -14,6 +14,7 @@ import BasketIcon from "../components/icons/BasketIcon";
 import GiftIcon from "../components/icons/GiftIcon";
 import Logo from "../components/icons/Logo";
 import ThemeToggle from "../ui/ThemeToggle";
+import UserMenu from "../ui/UserMenu";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -74,7 +75,10 @@ const Dashboard = () => {
                         background: token.colorBgContainer,
                     }}
                 >
-                    <ThemeToggle />
+                    <Space size="middle" align="center">
+                        <ThemeToggle />
+                        <UserMenu />
+                    </Space>
                 </Header>{" "}
                 <Content style={{ margin: "0 16px" }}>
                     <Suspense fallback={<PageLoader />}>
