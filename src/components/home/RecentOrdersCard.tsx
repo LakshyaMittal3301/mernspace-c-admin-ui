@@ -104,8 +104,8 @@ export default function RecentOrdersCard() {
     const navigate = useNavigate();
 
     // tone for header strip & footer underline
-    const fg = token.colorPrimary;
-    const bg = token.colorPrimaryBg;
+    const fg = token.colorInfo;
+    const bg = token.colorInfoBg;
 
     const { data, isLoading, isRefetching, refetch } = useQuery({
         queryKey: ["dashboard", "recent-orders"],
@@ -131,7 +131,6 @@ export default function RecentOrdersCard() {
 
     return (
         <Card
-            bordered
             style={{ width: "100%", height: "100%", borderTop: `4px solid ${fg}` }}
             styles={{
                 header: { padding: "16px 20px" }, // match Stat/Sales cards

@@ -55,6 +55,7 @@ export default function SalesTrendCard({
 
     return (
         <Card
+            style={{ width: "100%", height: "100%", borderTop: `4px solid ${fg}` }}
             styles={{
                 header: { padding: "16px 20px" }, // match StatCard header
                 body: { padding: 16 }, // keep your current graph padding

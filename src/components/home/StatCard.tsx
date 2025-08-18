@@ -40,7 +40,6 @@ export default function StatCard({
 
     return (
         <Card
-            bordered
             // top colored strip for quick visual grouping
             style={{ borderTop: `4px solid ${fg}` }}
             // use new v5 API instead of deprecated bodyStyle/headStyle
