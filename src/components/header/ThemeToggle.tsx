@@ -1,6 +1,6 @@
 import { Switch, Tooltip } from "antd";
 import { SunFilled, MoonFilled } from "@ant-design/icons";
-import { useUiStore } from "../stores/ui";
+import { useUiStore } from "../../stores/ui";
 
 export default function ThemeToggle() {
     const mode = useUiStore((s) => s.themeMode);

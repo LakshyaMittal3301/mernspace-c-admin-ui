@@ -7,7 +7,7 @@ export const login = async (credentials: Credentials): Promise<void> => {
 };
 
 export const self = async (): Promise<User> => {
-    const { data } = await api.get<User>("/auth/self");
+    const { data } = await api.get<User>("/auth/self?expand=tenant");
     return data;
 };
 

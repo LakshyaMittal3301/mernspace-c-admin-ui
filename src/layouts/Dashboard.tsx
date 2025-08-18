@@ -13,8 +13,7 @@ import FoodIcon from "../components/icons/FoodIcon";
 import BasketIcon from "../components/icons/BasketIcon";
 import GiftIcon from "../components/icons/GiftIcon";
 import Logo from "../components/icons/Logo";
-import ThemeToggle from "../ui/ThemeToggle";
-import UserMenu from "../ui/UserMenu";
+import { ThemeToggle, UserMenu, TenantBubble } from "../components/header";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -71,10 +70,11 @@ const Dashboard = () => {
                         padding: "0 16px",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "flex-end",
+                        justifyContent: "space-between",
                         background: token.colorBgContainer,
                     }}
                 >
+                    <TenantBubble />
                     <Space size="middle" align="center">
                         <ThemeToggle />
                         <UserMenu />

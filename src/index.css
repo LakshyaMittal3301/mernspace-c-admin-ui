@@ -8,8 +8,25 @@
     --logo-accent: #f65f42; /* your custom dark accent */
 }
 
+/* index.css */
 .logo {
+    height: 64px; /* predictable block */
     padding: 16px 20px;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: hidden; /* <-- important: clips the text when collapsed */
+}
+
+.logo__svg {
+    display: block;
+    width: 93px; /* keep 1:1 with SVG width */
+    height: auto;
+    transform: translateX(0);
+    transition: transform 200ms ease; /* smooth move on collapse/expand */
+}
+
+/* When collapsed, shift the SVG so the circle (cx=11) sits at the sider center */
+.logo.is-collapsed .logo__svg {
+    transform: translateX(var(--logo-shift, 29px));
 }
