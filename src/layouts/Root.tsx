@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 import { self } from "../http/api";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../store";
+import { useAuthStore } from "../stores/store";
 import { useEffect } from "react";
 
 const Root = () => {

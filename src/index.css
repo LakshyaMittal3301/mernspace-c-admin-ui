@@ -1,3 +1,6 @@
+/* index.css */
 .logo {
-    padding: 20px 30px;
+    padding: 16px 20px;
+    display: grid;
+    place-items: center;
 }

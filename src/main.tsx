@@ -12,7 +12,7 @@ import { router } from "./router";
 import { queryClient } from "./lib/queryClient";
 import { appTheme } from "./ui/theme";
 import { attachAuthInterceptor } from "./http/client";
-import { useAuthStore } from "./store";
+import { useAuthStore } from "./stores/store";
 
 attachAuthInterceptor(() => {
     useAuthStore.getState().logout();

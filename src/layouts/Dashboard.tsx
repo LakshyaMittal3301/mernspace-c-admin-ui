@@ -1,15 +1,16 @@
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
-import { useAuthStore } from "../store";
+import { useAuthStore } from "../stores/store";
 import { Suspense, useState } from "react";
 import { PageLoader } from "../ui/PageLoader";
 import { Layout, Menu, theme, type MenuProps } from "antd";
 import Sider from "antd/es/layout/Sider";
-import { Content, Footer, Header } from "antd/es/layout/layout";
+
+const { Content, Footer, Header } = Layout;
 
 import Icon from "@ant-design/icons";
 import Home from "../components/icons/Home";
 import UserIcon from "../components/icons/UserIcon";
-import { foodIcon } from "../components/icons/FoodIcon";
+import FoodIcon from "../components/icons/FoodIcon";
 import BasketIcon from "../components/icons/BasketIcon";
 import GiftIcon from "../components/icons/GiftIcon";
 import Logo from "../components/icons/Logo";
@@ -18,7 +19,7 @@ type MenuItem = Required<MenuProps>["items"][number];
 
 const getItem = (title: string, route: string, icon: React.ReactNode): MenuItem => {
     return {
-        label: <NavLink to="route">{title}</NavLink>,
+        label: <NavLink to={route}>{title}</NavLink>,
         key: route,
         icon,
     };
@@ -27,10 +28,11 @@ const getItem = (title: string, route: string, icon: React.ReactNode): MenuItem 
 const items: MenuItem[] = [
     getItem("Home", "/", <Icon component={Home} />),
     getItem("Users", "/users", <Icon component={UserIcon} />),
-    getItem("Restuarants", "/restaurants", <Icon component={foodIcon} />),
+    getItem("Restaurants", "/restaurants", <Icon component={FoodIcon} />),
     getItem("Products", "/products", <Icon component={BasketIcon} />),
     getItem("Promos", "/promos", <Icon component={GiftIcon} />),
 ];
+
 const Dashboard = () => {
     const user = useAuthStore((s) => s.user);
     const hydrated = useAuthStore((s) => s.hydrated);
@@ -56,7 +58,12 @@ const Dashboard = () => {
                 <div className="logo">
                     <Logo />
                 </div>
-                <Menu theme="light" defaultSelectedKeys={["/"]} mode="inline" items={items} />
+                <Menu
+                    theme="light"
+                    selectedKeys={[location.pathname]}
+                    mode="inline"
+                    items={items}
+                />
             </Sider>
             <Layout>
                 <Header style={{ padding: 0, background: colorBgContainer }} />
