@@ -13,7 +13,14 @@ const TenantBubble = () => {
             <Tag
                 icon={<CrownOutlined />}
                 color="warning"
-                style={{ borderRadius: 999, fontWeight: 500 }}
+                style={{
+                    borderRadius: 999,
+                    fontWeight: 500,
+                    fontSize: "14px",
+                    lineHeight: "20px",
+                    padding: "4px 12px",
+                    height: "auto",
+                }}
             >
                 Admin
             </Tag>
@@ -34,6 +41,10 @@ const TenantBubble = () => {
                     maxWidth: 300,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
+                    fontSize: "14px",
+                    lineHeight: "20px",
+                    padding: "4px 12px",
+                    height: "auto",
                 }}
             >
                 <span style={{ whiteSpace: "nowrap" }}>{shortAddr}</span>
