@@ -1,3 +1,5 @@
+export type ThemeMode = "light" | "dark";
+
 export type Credentials = {
     email: string;
     password: string;

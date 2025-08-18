@@ -1,4 +1,13 @@
-/* index.css */
+:root[data-theme="light"] {
+    --logo-fg: #484848; /* your custom light fill */
+    --logo-accent: #f65f42; /* your custom light accent */
+}
+
+:root[data-theme="dark"] {
+    --logo-fg: #e6e9ef; /* your custom dark fill */
+    --logo-accent: #f65f42; /* your custom dark accent */
+}
+
 .logo {
     padding: 16px 20px;
     display: grid;

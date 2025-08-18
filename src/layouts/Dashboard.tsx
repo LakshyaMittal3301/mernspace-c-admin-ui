@@ -3,9 +3,8 @@ import { useAuthStore } from "../stores/auth";
 import { Suspense, useState } from "react";
 import { PageLoader } from "../ui/PageLoader";
 import { Layout, Menu, theme, type MenuProps } from "antd";
-import Sider from "antd/es/layout/Sider";
 
-const { Content, Footer, Header } = Layout;
+const { Content, Footer, Header, Sider } = Layout;
 
 import Icon from "@ant-design/icons";
 import Home from "../components/icons/Home";
@@ -14,6 +13,7 @@ import FoodIcon from "../components/icons/FoodIcon";
 import BasketIcon from "../components/icons/BasketIcon";
 import GiftIcon from "../components/icons/GiftIcon";
 import Logo from "../components/icons/Logo";
+import ThemeToggle from "../ui/ThemeToggle";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -39,9 +39,7 @@ const Dashboard = () => {
     const location = useLocation();
 
     const [collapsed, setCollapsed] = useState(false);
-    const {
-        token: { colorBgContainer },
-    } = theme.useToken();
+    const { token } = theme.useToken();
 
     if (!hydrated) return <PageLoader />;
 
@@ -54,6 +52,7 @@ const Dashboard = () => {
                 collapsible
                 collapsed={collapsed}
                 onCollapse={(value) => setCollapsed(value)}
+                style={{ background: token.colorBgContainer }}
             >
                 <div className="logo">
                     <Logo />
@@ -66,7 +65,17 @@ const Dashboard = () => {
                 />
             </Sider>
             <Layout>
-                <Header style={{ padding: 0, background: colorBgContainer }} />
+                <Header
+                    style={{
+                        padding: "0 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        background: token.colorBgContainer,
+                    }}
+                >
+                    <ThemeToggle />
+                </Header>{" "}
                 <Content style={{ margin: "0 16px" }}>
                     <Suspense fallback={<PageLoader />}>
                         <Outlet />
