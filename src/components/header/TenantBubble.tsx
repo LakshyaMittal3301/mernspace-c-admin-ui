@@ -1,10 +1,9 @@
-import { Tag, theme, Tooltip } from "antd";
+import { Tag, Tooltip } from "antd";
 import { CrownOutlined, EnvironmentOutlined } from "@ant-design/icons";
 
 import { useAuthStore } from "../../stores/auth";
 
 const TenantBubble = () => {
-    const { token } = theme.useToken();
     const user = useAuthStore((s) => s.user);
 
     if (!user) return null;
@@ -13,7 +12,7 @@ const TenantBubble = () => {
         return (
             <Tag
                 icon={<CrownOutlined />}
-                color={token.colorWarningTextActive}
+                color="warning"
                 style={{ borderRadius: 999, fontWeight: 500 }}
             >
                 Admin
@@ -28,7 +27,7 @@ const TenantBubble = () => {
         const tag = (
             <Tag
                 icon={<EnvironmentOutlined />}
-                color={token.colorInfo}
+                color="processing"
                 style={{
                     borderRadius: 999,
                     fontWeight: 500,
