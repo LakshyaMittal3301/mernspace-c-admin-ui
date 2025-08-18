@@ -8,8 +8,19 @@ import StatSalesCard from "../components/home/StatSalesCard";
 export default function HomePage() {
     const { token } = theme.useToken();
     return (
-        <>
-            <Typography.Title level={4} style={{ marginBottom: 16 }}>
+        <div
+            style={{
+                padding: "24px 24px 0", // space from layout edges
+            }}
+        >
+            <Typography.Title
+                level={3}
+                style={{
+                    marginBottom: 32, // more breathing room before cards
+                    color: token.colorTextHeading,
+                    fontWeight: 700,
+                }}
+            >
                 Good Morning 👋
             </Typography.Title>
 
@@ -43,6 +54,6 @@ export default function HomePage() {
                     <RecentOrdersCard />
                 </Col>
             </Row>
-        </>
+        </div>
     );
 }
