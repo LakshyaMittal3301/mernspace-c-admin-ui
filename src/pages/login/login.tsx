@@ -3,7 +3,7 @@ import { Content } from "antd/es/layout/layout";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/store";
+import { useAuthStore } from "../../stores/auth";
 import { usePermission } from "../../hooks/usePermission";
 import { useLocation, useNavigate } from "react-router-dom";
 import { login, logout, self } from "../../http/api";

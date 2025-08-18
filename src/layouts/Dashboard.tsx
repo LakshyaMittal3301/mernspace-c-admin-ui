@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
-import { useAuthStore } from "../stores/store";
+import { useAuthStore } from "../stores/auth";
 import { Suspense, useState } from "react";
 import { PageLoader } from "../ui/PageLoader";
 import { Layout, Menu, theme, type MenuProps } from "antd";
