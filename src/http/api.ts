@@ -18,3 +18,10 @@ export const refresh = async (): Promise<void> => {
 export const logout = async (): Promise<void> => {
     await api.post("/auth/logout");
 };
+
+export type UsersResponse = { users: User[] };
+
+export const getUsers = async (): Promise<UsersResponse> => {
+    const { data } = await api.get("/admin/users");
+    return data;
+};
