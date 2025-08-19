@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, Table, Result, Button, Typography, Tooltip, theme, Form, message, App } from "antd";
+import { Card, Table, Result, Button, Typography, Tooltip, Form, App } from "antd";
 import type { TableProps } from "antd";
 import { EyeOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
@@ -24,7 +24,6 @@ import TableActions from "../components/common/TableActions";
 import TenantForm, { type TenantValues } from "../components/tenants/TenantForm";
 
 export default function RestaurantsPage() {
-    const { token } = theme.useToken();
     const { message } = App.useApp();
 
     // modal state
@@ -53,7 +52,7 @@ export default function RestaurantsPage() {
     const [drawerMode, setDrawerMode] = useState<"create" | "edit">("create");
     const [editing, setEditing] = useState<{ id: number; name: string; address: string }>();
 
-    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+    const [_pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
     // mutations
     const createMut = useMutation({ mutationFn: createTenant });
