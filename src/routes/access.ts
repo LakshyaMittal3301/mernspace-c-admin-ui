@@ -1,0 +1,11 @@
+import type { Role } from "../types";
+
+export const routeAccess: Record<string, Role[] | "any"> = {
+    "/": "any",
+    "/users": ["admin"],
+    "/products": ["admin", "manager"],
+    "/restaurants": ["admin", "manager"],
+    "/promos": ["admin", "manager"],
+};
+
+export const rolesFor = (path: string): Role[] | "any" | undefined => routeAccess[path];

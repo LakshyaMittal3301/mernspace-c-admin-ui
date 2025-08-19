@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import type { RouteObject } from "react-router";
-import CreateUserPage from "../pages/CreateUserPage";
+import RequireRole from "../components/auth/RequireRole";
+import { rolesFor } from "../routes/access";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const UsersPage = lazy(() => import("../pages/UsersPage"));
@@ -8,31 +9,29 @@ const ProductsPage = lazy(() => import("../pages/ProductsPage"));
 const PromosPage = lazy(() => import("../pages/PromosPage"));
 const RestaurantsPage = lazy(() => import("../pages/RestaurantsPage"));
 
+const protect = (path: string, element: React.JSX.Element) => (
+    <RequireRole roles={rolesFor(path)}>{element}</RequireRole>
+);
+
 export const dashboardChildren: RouteObject[] = [
     {
         index: true,
-        element: <HomePage />,
+        element: protect("/", <HomePage />),
     },
     {
         path: "users",
-        element: <UsersPage />,
-        children: [
-            {
-                path: "create",
-                element: <CreateUserPage />,
-            },
-        ],
+        element: protect("/users", <UsersPage />),
     },
     {
         path: "promos",
-        element: <PromosPage />,
+        element: protect("/promos", <PromosPage />),
     },
     {
         path: "products",
-        element: <ProductsPage />,
+        element: protect("/products", <ProductsPage />),
     },
     {
         path: "restaurants",
-        element: <RestaurantsPage />,
+        element: protect("/restaurants", <RestaurantsPage />),
     },
 ];
