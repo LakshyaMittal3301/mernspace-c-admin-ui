@@ -19,11 +19,47 @@ export const logout = async (): Promise<void> => {
     await api.post("/auth/logout");
 };
 
+// --- Users ---
 export type UsersResponse = { users: User[] };
 
 export const getUsers = async (): Promise<UsersResponse> => {
     const { data } = await api.get("/admin/users");
     return data;
+};
+
+export type CreateAdminPayload = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+};
+export type CreateManagerPayload = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    tenantId: number;
+};
+
+export const createAdmin = async (p: CreateAdminPayload) => {
+    const { data } = await api.post("/admin/users/admins", p);
+    return data;
+};
+export const createManager = async (p: CreateManagerPayload) => {
+    const { data } = await api.post("/admin/users/managers", p);
+    return data;
+};
+
+export const updateUser = async (
+    id: number,
+    p: { firstName?: string; lastName?: string; email?: string }
+) => {
+    const { data } = await api.patch(`/admin/users/${id}`, p);
+    return data;
+};
+
+export const deleteUser = async (id: number) => {
+    await api.delete(`/admin/users/${id}`);
 };
 
 export type TenantsResponse = { tenants: Tenant[] };
