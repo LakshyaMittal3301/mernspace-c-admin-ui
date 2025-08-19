@@ -14,6 +14,7 @@ import BasketIcon from "../components/icons/BasketIcon";
 import GiftIcon from "../components/icons/GiftIcon";
 import Logo from "../components/icons/Logo";
 import { ThemeToggle, UserMenu, TenantBubble } from "../components/header";
+import AppBreadcrumbs from "../components/breadcrumbs/AppBreadcrumbs";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -79,11 +80,12 @@ const Dashboard = () => {
                         <ThemeToggle />
                         <UserMenu />
                     </Space>
-                </Header>{" "}
-                <Content style={{ margin: "0 16px" }}>
+                </Header>
+                <Content style={{ padding: "0 16px" }}>
+                    <AppBreadcrumbs />
                     <Suspense fallback={<PageLoader />}>
                         <Outlet />
-                    </Suspense>{" "}
+                    </Suspense>
                 </Content>
                 <Footer style={{ textAlign: "center" }}>Made with ♥️ by Lakshya</Footer>
             </Layout>

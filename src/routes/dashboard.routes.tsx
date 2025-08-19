@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import type { RouteObject } from "react-router";
+import CreateUserPage from "../pages/CreateUserPage";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const UsersPage = lazy(() => import("../pages/UsersPage"));
@@ -15,6 +16,12 @@ export const dashboardChildren: RouteObject[] = [
     {
         path: "users",
         element: <UsersPage />,
+        children: [
+            {
+                path: "create",
+                element: <CreateUserPage />,
+            },
+        ],
     },
     {
         path: "promos",
