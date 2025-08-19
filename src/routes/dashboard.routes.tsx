@@ -2,7 +2,10 @@ import { lazy } from "react";
 import type { RouteObject } from "react-router";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
-const Categories = lazy(() => import("../pages/Categories"));
+const UsersPage = lazy(() => import("../pages/UsersPage"));
+const ProductsPage = lazy(() => import("../pages/ProductsPage"));
+const PromosPage = lazy(() => import("../pages/PromosPage"));
+const RestaurantsPage = lazy(() => import("../pages/RestaurantsPage"));
 
 export const dashboardChildren: RouteObject[] = [
     {
@@ -10,7 +13,19 @@ export const dashboardChildren: RouteObject[] = [
         element: <HomePage />,
     },
     {
-        path: "categories",
-        element: <Categories />,
+        path: "users",
+        element: <UsersPage />,
+    },
+    {
+        path: "promos",
+        element: <PromosPage />,
+    },
+    {
+        path: "products",
+        element: <ProductsPage />,
+    },
+    {
+        path: "restaurants",
+        element: <RestaurantsPage />,
     },
 ];
