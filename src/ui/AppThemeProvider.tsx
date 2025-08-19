@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type PropsWithChildren } from "react";
 import { useUiStore } from "../stores/ui";
-import { ConfigProvider, theme as antdTheme } from "antd";
+import { ConfigProvider, App, theme as antdTheme } from "antd";
 import { appTheme } from "./theme";
 
 const AppThemeProvider = ({ children }: PropsWithChildren) => {
@@ -18,7 +18,9 @@ const AppThemeProvider = ({ children }: PropsWithChildren) => {
     }, [isDark]);
 
     return (
-        <ConfigProvider theme={{ ...appTheme, algorithm: algorithms }}>{children}</ConfigProvider>
+        <ConfigProvider theme={{ ...appTheme, algorithm: algorithms }}>
+            <App>{children}</App>
+        </ConfigProvider>
     );
 };
 
