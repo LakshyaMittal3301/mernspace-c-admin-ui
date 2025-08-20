@@ -218,7 +218,7 @@ export default function RestaurantsPage() {
                     loading={isLoading || isRefetching}
                     columns={columns}
                     dataSource={filtered}
-                    pagination={false}
+                    // pagination={false}
                     locale={{ emptyText: "No restaurants yet" }}
                 />
             </Card>

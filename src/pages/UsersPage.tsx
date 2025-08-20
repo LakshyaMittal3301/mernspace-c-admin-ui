@@ -14,7 +14,7 @@ import {
     Space,
     App,
 } from "antd";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import {
     PlusOutlined,
     ReloadOutlined,
@@ -23,15 +23,16 @@ import {
     EditOutlined,
     DeleteOutlined,
 } from "@ant-design/icons";
-import type { TableProps } from "antd";
-import type { User, Role } from "../types";
-import { getUsers, type UsersResponse, deleteUser } from "../http/api";
-import { useAuthStore } from "../stores/auth";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { Role } from "../types";
+import { getUsers, deleteUser } from "../http/api";
+import type { ApiUser, ListUsersApiResponse, GetUsersParams } from "../http/api";
 
 import ListHeader from "../components/common/ListHeader";
 import ConfirmModal from "../components/common/ConfirmModal";
 import UserDrawer from "../components/users/UserDrawer";
 import { Link } from "react-router-dom";
+import { useAuthStore } from "../stores/auth";
 
 const ROLE_OPTIONS: Role[] = ["admin", "manager", "customer"];
 const toTitle = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -42,23 +43,43 @@ export default function UsersPage() {
     const selfUser = useAuthStore((s) => s.user)!; // authenticated user
 
     // filters
-    const [q, setQ] = useState("");
+    const [qDraft, setQDraft] = useState(""); // what user is typing
+    const [q, setQ] = useState(""); // submitted value used for querying
     const [role, setRole] = useState<Role | "all">("all");
+
+    // server-side params (controlled by Table pagination/sorter)
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [sort, setSort] = useState<"id" | "createdAt">("id");
+    const [order, setOrder] = useState<"asc" | "desc">("desc");
 
     // create/edit drawer
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [mode, setMode] = useState<"create" | "edit">("create");
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editingUser, setEditingUser] = useState<ApiUser | null>(null);
 
     // delete modal
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleting, setDeleting] = useState<User | null>(null);
+    const [deleting, setDeleting] = useState<ApiUser | null>(null);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-    const { data, isLoading, isRefetching, isError, refetch } = useQuery<UsersResponse>({
-        queryKey: ["user-list"],
-        queryFn: getUsers,
-        staleTime: 5 * 60 * 1000,
+    const params = useMemo<GetUsersParams>(
+        () => ({
+            page,
+            limit,
+            sort,
+            order,
+            q: q.trim() || undefined,
+            role: role === "all" ? undefined : role,
+        }),
+        [page, limit, sort, order, q, role]
+    );
+
+    const { data, isPending, isFetching, isError, refetch } = useQuery<ListUsersApiResponse>({
+        queryKey: ["user-list", params],
+        queryFn: () => getUsers(params),
+        placeholderData: keepPreviousData,
+        staleTime: 60_000,
     });
 
     // standalone mutation; UI tied to our own confirmingDelete state
@@ -112,7 +133,7 @@ export default function UsersPage() {
         );
     };
 
-    const columns: TableProps<User>["columns"] = [
+    const columns: ColumnsType<ApiUser> = [
         {
             title: "Name",
             key: "name",
@@ -128,13 +149,12 @@ export default function UsersPage() {
             dataIndex: "role",
             key: "role",
             render: (r: Role) => <RoleTag value={r} />,
-            filters: ROLE_OPTIONS.map((r) => ({ text: toTitle(r), value: r })),
-            onFilter: (value, rec) => rec.role === value,
         },
         {
             title: "Created",
             dataIndex: "createdAt",
             key: "createdAt",
+            sorter: true, // server-side sort via onChange handler
             render: (v: string | Date | undefined) => {
                 if (!v) return "—";
                 const d = typeof v === "string" ? new Date(v) : v;
@@ -198,7 +218,7 @@ export default function UsersPage() {
                     <Button
                         type="primary"
                         onClick={() => refetch()}
-                        loading={isRefetching}
+                        loading={isFetching}
                         icon={<ReloadOutlined />}
                     >
                         Retry
@@ -208,18 +228,15 @@ export default function UsersPage() {
         );
     }
 
-    const allUsers = data?.users ?? [];
-    const filteredUsers = useMemo(() => {
-        const qn = q.trim().toLowerCase();
-        return allUsers.filter((u) => {
-            const matchesQuery =
-                !qn ||
-                u.email.toLowerCase().includes(qn) ||
-                `${u.firstName} ${u.lastName}`.toLowerCase().includes(qn);
-            const matchesRole = role === "all" || u.role === role;
-            return matchesQuery && matchesRole;
-        });
-    }, [allUsers, q, role]);
+    // AntD Table built-in pagination config (controlled)
+    const pagination: TablePaginationConfig = {
+        current: page,
+        pageSize: limit,
+        total: data?.total,
+        showSizeChanger: true,
+        pageSizeOptions: ["10", "20", "50", "100"],
+        showTotal: (total) => `Total ${total} users`,
+    };
 
     return (
         <>
@@ -237,8 +254,12 @@ export default function UsersPage() {
                                         allowClear
                                         placeholder="Search name or email"
                                         prefix={<SearchOutlined />}
-                                        value={q}
-                                        onChange={(e) => setQ(e.target.value)}
+                                        value={qDraft}
+                                        onChange={(e) => setQDraft(e.target.value)}
+                                        onPressEnter={() => {
+                                            setPage(1);
+                                            setQ(qDraft.trim());
+                                        }}
                                         style={{ width: 260 }}
                                     />
                                 </Form.Item>
@@ -246,7 +267,10 @@ export default function UsersPage() {
                                 <Form.Item>
                                     <Select
                                         value={role}
-                                        onChange={setRole}
+                                        onChange={(val) => {
+                                            setRole(val);
+                                            setPage(1); // changing params triggers fetch
+                                        }}
                                         style={{ width: 180 }}
                                         options={[
                                             { value: "all", label: "All roles" },
@@ -259,7 +283,13 @@ export default function UsersPage() {
                                 </Form.Item>
 
                                 <Form.Item>
-                                    <Button icon={<SearchOutlined />} onClick={() => refetch()}>
+                                    <Button
+                                        icon={<SearchOutlined />}
+                                        onClick={() => {
+                                            setPage(1);
+                                            setQ(qDraft.trim()); // changing params triggers the query
+                                        }}
+                                    >
                                         Search
                                     </Button>
                                 </Form.Item>
@@ -269,7 +299,7 @@ export default function UsersPage() {
                             <Space>
                                 <Button
                                     onClick={() => refetch()}
-                                    loading={isRefetching}
+                                    loading={isFetching}
                                     icon={<ReloadOutlined />}
                                 >
                                     Refresh
@@ -290,12 +320,31 @@ export default function UsersPage() {
                     />
                 }
             >
-                <Table<User>
+                <Table<ApiUser>
                     rowKey="id"
-                    loading={isLoading || isRefetching}
+                    loading={isPending || isFetching}
                     columns={columns}
-                    dataSource={filteredUsers}
-                    pagination={false}
+                    dataSource={data?.rows ?? []}
+                    pagination={pagination}
+                    onChange={(p, _filters, sorter: any) => {
+                        // Pagination changes
+                        if (p.current !== page) setPage(p.current || 1);
+                        if (p.pageSize && p.pageSize !== limit) {
+                            setLimit(p.pageSize);
+                            // reset to page 1 when pageSize changes
+                            if ((p.current || 1) !== 1) setPage(1);
+                        }
+                        // Sorting changes
+                        const nextOrder =
+                            sorter?.order === "ascend"
+                                ? "asc"
+                                : sorter?.order === "descend"
+                                ? "desc"
+                                : order;
+                        const nextSort = sorter?.field === "createdAt" ? "createdAt" : "id";
+                        if (nextSort !== sort) setSort(nextSort);
+                        if (nextOrder !== order) setOrder(nextOrder);
+                    }}
                     locale={{ emptyText: "No users yet" }}
                 />
             </Card>
@@ -303,7 +352,7 @@ export default function UsersPage() {
             {/* Drawer */}
             <UserDrawer
                 mode={mode}
-                open={drawerOpen && (mode !== "edit" || !!editingUser)} // ✅ guard
+                open={drawerOpen && (mode !== "edit" || !!editingUser)} // guard
                 onClose={() => setDrawerOpen(false)}
                 onSaved={() => {
                     setDrawerOpen(false);

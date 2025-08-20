@@ -1,4 +1,4 @@
-import type { Credentials, Tenant, User } from "../types";
+import type { Credentials, Role, Tenant, User } from "../types";
 import { api } from "./client";
 
 // Auth service
@@ -20,10 +20,46 @@ export const logout = async (): Promise<void> => {
 };
 
 // --- Users ---
-export type UsersResponse = { users: User[] };
+export type ApiUser = {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
+    tenantId: number | null;
+    createdAt: string;
+};
 
-export const getUsers = async (): Promise<UsersResponse> => {
-    const { data } = await api.get("/admin/users");
+export type ListUsersApiResponse = {
+    rows: ApiUser[];
+    page: number;
+    limit: number;
+    sort: "id" | "createdAt";
+    order: "asc" | "desc";
+    total: number;
+    totalPages: number;
+};
+
+export type GetUsersParams = {
+    page?: number;
+    limit?: number;
+    sort?: "id" | "createdAt";
+    order?: "asc" | "desc";
+    q?: string;
+    role?: Role;
+};
+
+export const getUsers = async (params: GetUsersParams = {}): Promise<ListUsersApiResponse> => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.sort) qs.set("sort", params.sort);
+    if (params.order) qs.set("order", params.order);
+    if (params.q?.trim()) qs.set("q", params.q.trim());
+    if (params.role) qs.set("role", params.role);
+
+    const path = qs.toString() ? `/admin/users?${qs.toString()}` : "/admin/users";
+    const { data } = await api.get<ListUsersApiResponse>(path);
     return data;
 };
 
