@@ -218,7 +218,12 @@ export default function RestaurantsPage() {
                     loading={isLoading || isRefetching}
                     columns={columns}
                     dataSource={filtered}
-                    // pagination={false}
+                    pagination={{
+                        total: filtered.length,
+                        pageSizeOptions: ["5", "10", "20", "50"],
+                        showSizeChanger: true,
+                        showTotal: (total) => `Total ${total} restaurants`,
+                    }}
                     locale={{ emptyText: "No restaurants yet" }}
                 />
             </Card>
