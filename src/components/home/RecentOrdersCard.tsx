@@ -115,11 +115,23 @@ export default function RecentOrdersCard() {
 
     // status → tag color (token-based, dark-mode safe)
     const statusColor = useMemo(() => {
-        return new Map<OrderStatus, string>([
-            ["Preparing", token.colorInfo],
-            ["On the way", token.colorWarning],
-            ["Delivered", token.colorSuccess],
-            ["Cancelled", token.colorError],
+        return new Map<OrderStatus, { bg: string; fg: string; bd: string }>([
+            [
+                "Preparing",
+                { bg: token.colorInfoBg, fg: token.colorInfo, bd: token.colorInfoBorder },
+            ],
+            [
+                "On the way",
+                { bg: token.colorWarningBg, fg: token.colorWarning, bd: token.colorWarningBorder },
+            ],
+            [
+                "Delivered",
+                { bg: token.colorSuccessBg, fg: token.colorSuccess, bd: token.colorSuccessBorder },
+            ],
+            [
+                "Cancelled",
+                { bg: token.colorErrorBg, fg: token.colorError, bd: token.colorErrorBorder },
+            ],
         ]);
     }, [token]);
 
@@ -197,7 +209,11 @@ export default function RecentOrdersCard() {
                     // occupy remaining space; footer stays inside the list (last row)
                     style={{ padding: 12, paddingTop: 8, flex: 1, overflowY: "auto" }}
                     renderItem={(o) => {
-                        const color = statusColor.get(o.status as OrderStatus) ?? token.colorText;
+                        const { bg, fg, bd } = statusColor.get(o.status as OrderStatus) ?? {
+                            bg: token.colorBgBase,
+                            fg: token.colorText,
+                            bd: token.colorBorder,
+                        };
                         return (
                             <List.Item
                                 className="orders-item"
@@ -237,8 +253,16 @@ export default function RecentOrdersCard() {
                                         }).format(o.price)}
                                     </Typography.Text>
                                     <Tag
-                                        color={color}
-                                        style={{ borderRadius: 999, fontWeight: 500 }}
+                                        style={{
+                                            borderRadius: 999,
+                                            fontWeight: 500,
+                                            background: bg,
+                                            color: fg,
+                                            borderColor: bd,
+                                            borderWidth: 1,
+                                            borderStyle: "solid",
+                                            paddingInline: 10,
+                                        }}
                                     >
                                         {o.status}
                                     </Tag>
