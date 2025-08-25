@@ -8,7 +8,7 @@ import {
     createAdmin,
     createManager,
     updateUser,
-} from "../../http/api";
+} from "../../http/services/authApi";
 import type { Role, User } from "../../types";
 
 type CreateMode = {

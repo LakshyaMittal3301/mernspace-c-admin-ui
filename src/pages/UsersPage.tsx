@@ -25,8 +25,8 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { Role } from "../types";
-import { getUsers, deleteUser } from "../http/api";
-import type { ApiUser, ListUsersApiResponse, GetUsersParams } from "../http/api";
+import { getUsers, deleteUser } from "../http/services/authApi";
+import type { ApiUser, ListUsersApiResponse, GetUsersParams } from "../http/services/authApi";
 
 import ListHeader from "../components/common/ListHeader";
 import ConfirmModal from "../components/common/ConfirmModal";

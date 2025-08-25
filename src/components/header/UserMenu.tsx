@@ -2,7 +2,7 @@ import { Avatar, Dropdown, theme, type MenuProps } from "antd";
 import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
 import { useAuthStore } from "../../stores/auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { logout } from "../../http/api";
+import { logout } from "../../http/services/authApi";
 
 const initials = (name?: { firstName?: string; lastName?: string; email?: string }) => {
     const a = name?.firstName?.[0] ?? name?.email?.[0] ?? "U";

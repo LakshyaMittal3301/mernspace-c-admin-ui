@@ -12,7 +12,7 @@ import {
     updateTenant,
     deleteTenant,
     type TenantsResponse,
-} from "../http/api";
+} from "../http/services/authApi";
 
 // common helpers
 import ListHeader from "../components/common/ListHeader";

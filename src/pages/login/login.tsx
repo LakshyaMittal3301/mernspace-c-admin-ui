@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/auth";
 import { usePermission } from "../../hooks/usePermission";
 import { useLocation, useNavigate } from "react-router-dom";
-import { login, logout, self } from "../../http/api";
+import { login, logout, self } from "../../http/services/authApi";
 import type { Credentials, User } from "../../types";
 
 const LoginPage = () => {

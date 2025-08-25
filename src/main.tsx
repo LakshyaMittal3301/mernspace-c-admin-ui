@@ -10,10 +10,12 @@ import "./index.css";
 import { router } from "./router";
 import { queryClient } from "./lib/queryClient";
 import AppThemeProvider from "./ui/AppThemeProvider";
-import { attachAuthInterceptor } from "./http/client";
 import { useAuthStore } from "./stores/auth";
+import { attachAuthInterceptor } from "./http/interceptors/attachAuthInterceptor";
+import { api } from "./http/baseClient";
+import { refresh } from "./http/services/authApi";
 
-attachAuthInterceptor(() => {
+attachAuthInterceptor(api, refresh, () => {
     useAuthStore.getState().logout();
 });
 

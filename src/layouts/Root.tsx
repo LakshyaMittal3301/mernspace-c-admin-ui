@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { self } from "../http/api";
+import { self } from "../http/services/authApi";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
 import { useEffect } from "react";
