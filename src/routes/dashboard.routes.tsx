@@ -2,6 +2,7 @@ import { lazy } from "react";
 import type { RouteObject } from "react-router";
 import RequireRole from "../components/auth/RequireRole";
 import { rolesFor } from "../routes/access";
+import CategoriesPage from "../pages/Categories";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const UsersPage = lazy(() => import("../pages/UsersPage"));
@@ -33,5 +34,9 @@ export const dashboardChildren: RouteObject[] = [
     {
         path: "restaurants",
         element: protect("/restaurants", <RestaurantsPage />),
+    },
+    {
+        path: "categories",
+        element: protect("/categories", <CategoriesPage />),
     },
 ];

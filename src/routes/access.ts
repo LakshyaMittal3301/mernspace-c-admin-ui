@@ -6,6 +6,7 @@ export const routeAccess: Record<string, Role[] | "any"> = {
     "/products": ["admin", "manager"],
     "/restaurants": ["admin"],
     "/promos": ["admin", "manager"],
+    "/categories": ["admin", "manager"],
 };
 
 export const rolesFor = (path: string): Role[] | "any" | undefined => routeAccess[path];
