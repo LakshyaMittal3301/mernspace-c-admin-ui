@@ -58,22 +58,14 @@ export default function CategoriesPage() {
     const filtered = useMemo(() => {
         const needle = q.trim().toLowerCase();
         let out = all;
-        if (needle) {
-            out = out.filter((c) => c.name.toLowerCase().includes(needle));
-        }
-        // sort
-        out = [...out].sort((a, b) => {
+        if (needle) out = out.filter((c) => c.name.toLowerCase().includes(needle));
+        return [...out].sort((a, b) => {
             const dir = sortOrder === "asc" ? 1 : -1;
-            const va = (a as any)[sortKey];
-            const vb = (b as any)[sortKey];
-            if (sortKey === "name") {
-                return a.name.localeCompare(b.name) * dir;
-            }
-            const da = new Date(va).getTime();
-            const db = new Date(vb).getTime();
+            if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
+            const da = new Date((a as any)[sortKey]).getTime();
+            const db = new Date((b as any)[sortKey]).getTime();
             return (da - db) * dir;
         });
-        return out;
     }, [all, q, sortKey, sortOrder]);
 
     // pagination slice

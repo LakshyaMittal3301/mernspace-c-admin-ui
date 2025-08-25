@@ -52,7 +52,7 @@ export type CategoryListItem = {
     id: Id;
     name: string;
     isDeleted: boolean;
-    deletedAt: Timestamp | null;
+    deletedAt?: Timestamp | null;
     createdAt: Timestamp;
     updatedAt: Timestamp;
 };
@@ -130,9 +130,9 @@ export async function listCategories(params?: {
 }): Promise<CategoryListItem[]> {
     const qs = new URLSearchParams();
     if (params?.includeDeleted) qs.set("includeDeleted", "true");
-    const path = qs.toString() ? `${CATALOG}/categories?${qs}` : `${CATALOG}/categories`;
-    const { data } = await api.get<CategoryListItem[]>(path);
-    return data;
+    const path = qs.toString() ? `${CATALOG}/categories?${qs.toString()}` : `${CATALOG}/categories`;
+    const { data } = await api.get<{ categories: CategoryListItem[] }>(path);
+    return Array.isArray(data?.categories) ? data.categories : [];
 }
 
 export async function getCategory(id: Id, opts?: { includeDeleted?: boolean }): Promise<Category> {
