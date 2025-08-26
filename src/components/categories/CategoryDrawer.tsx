@@ -1,6 +1,6 @@
 // src/components/categories/CategoryDrawer.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Drawer, Tabs, Space, Button, Tag, App, Alert } from "antd";
+import { Drawer, Tabs, Space, Button, Tag, App, Alert, Input } from "antd"; // 👈 import Input
 import type { TabsProps } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -165,17 +165,11 @@ export default function CategoryDrawer(props: CategoryDrawerProps) {
                         showIcon
                     />
                     <div style={{ display: "flex", gap: 8 }}>
-                        <input
+                        <Input
                             aria-label="Category name"
                             placeholder="Category name"
                             value={creatingName}
-                            onChange={(e) => setCreatingName((e.target as HTMLInputElement).value)}
-                            style={{
-                                flex: 1,
-                                padding: 8,
-                                borderRadius: 6,
-                                border: "1px solid #d9d9d9",
-                            }}
+                            onChange={(e) => setCreatingName(e.target.value)}
                         />
                         <Button
                             type="primary"

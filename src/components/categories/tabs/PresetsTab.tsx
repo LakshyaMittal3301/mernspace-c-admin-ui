@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     App,
     Alert,
@@ -8,6 +8,7 @@ import {
     Input,
     Modal,
     Radio,
+    Slider,
     Space,
     Switch as AntSwitch,
 } from "antd";
@@ -15,6 +16,8 @@ import type { Category } from "../../../http/services/catalogApi";
 import { addPreset, type ModificationGroup } from "../../../http/services/catalogApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import PresetCard from "../PresetCard";
+
+type OptionItem = { label: string };
 
 export default function PresetsTab({
     category,
@@ -29,6 +32,33 @@ export default function PresetsTab({
     const [addOpen, setAddOpen] = useState(false);
     const [kind, setKind] = useState<"radio" | "checkbox">("radio");
     const [form] = Form.useForm();
+
+    const optionsWatch = Form.useWatch("options", form) as OptionItem[] | undefined;
+    const optionCount = (optionsWatch ?? []).filter((o) => o && o.label?.trim()).length;
+
+    const optionRadioChoices =
+        (optionsWatch ?? []).map((o, idx) => ({
+            label: o?.label?.trim() ? o.label : `Option ${idx + 1}`,
+            value: idx,
+        })) || [];
+
+    const marks = useMemo(() => {
+        const m: Record<number, React.ReactNode> = {};
+        for (let i = 0; i <= optionCount; i++) m[i] = String(i);
+        return m;
+    }, [optionCount]);
+
+    useEffect(() => {
+        const current = form.getFieldValue("range") as [number, number] | undefined;
+        const max = optionCount;
+        const safe: [number, number] = [
+            Math.min(current?.[0] ?? 0, max),
+            Math.min(current?.[1] ?? max, max),
+        ];
+        if (!current || current[0] !== safe[0] || current[1] !== safe[1]) {
+            form.setFieldsValue({ range: safe });
+        }
+    }, [optionCount, form]);
 
     const list = useMemo(() => {
         return (category.modificationPresets ?? []).filter((p) => showDeleted || !p.isDeleted);
@@ -47,24 +77,26 @@ export default function PresetsTab({
 
     const submitAdd = async () => {
         const values = await form.validateFields();
+
         if (kind === "radio") {
             const payload = {
                 kind: "radio" as const,
                 name: values.name,
                 isRequired: !!values.isRequired,
-                options: (values.options || []).map((l: string) => ({ label: l })),
-                ...(typeof values.defaultOptionIndex === "number"
-                    ? { defaultOptionIndex: values.defaultOptionIndex }
+                options: (values.options || []).map((o: OptionItem) => ({ label: o.label })),
+                ...(typeof values.defaultIndex === "number"
+                    ? { defaultOptionIndex: values.defaultIndex }
                     : {}),
             };
             addMut.mutate(payload);
         } else {
+            const [min, max] = (values.range ?? [undefined, undefined]) as [number?, number?];
             const payload = {
                 kind: "checkbox" as const,
                 name: values.name,
-                minSelected: values.minSelected ?? undefined,
-                maxSelected: values.maxSelected ?? undefined,
-                options: (values.options || []).map((l: string) => ({ label: l })),
+                minSelected: typeof min === "number" ? min : undefined,
+                maxSelected: typeof max === "number" ? max : undefined,
+                options: (values.options || []).map((o: OptionItem) => ({ label: o.label })),
             };
             addMut.mutate(payload);
         }
@@ -150,13 +182,16 @@ export default function PresetsTab({
                         {kind === "radio" && (
                             <>
                                 <Form.Item label="Options" required>
-                                    <Form.List name="options" initialValue={["", ""]}>
+                                    <Form.List
+                                        name="options"
+                                        initialValue={[{ label: "" }, { label: "" }]}
+                                    >
                                         {(fields, { add, remove }) => (
                                             <Space direction="vertical" style={{ width: "100%" }}>
                                                 {fields.map((f) => (
                                                     <Space key={f.key} align="baseline">
                                                         <Form.Item
-                                                            {...f}
+                                                            name={[f.name, "label"]}
                                                             rules={[
                                                                 {
                                                                     required: true,
@@ -164,8 +199,7 @@ export default function PresetsTab({
                                                                 },
                                                             ]}
                                                         >
-                                                            {" "}
-                                                            <Input placeholder="Label" />{" "}
+                                                            <Input placeholder="Label" />
                                                         </Form.Item>
                                                         {fields.length > 1 && (
                                                             <Button onClick={() => remove(f.name)}>
@@ -174,27 +208,24 @@ export default function PresetsTab({
                                                         )}
                                                     </Space>
                                                 ))}
-                                                <Button onClick={() => add("")}>Add option</Button>
+                                                <Button onClick={() => add({ label: "" })}>
+                                                    Add option
+                                                </Button>
                                             </Space>
                                         )}
                                     </Form.List>
                                 </Form.Item>
+
                                 <Form.Item
                                     name="isRequired"
                                     label="Required"
                                     valuePropName="checked"
                                 >
-                                    <input type="checkbox" />
+                                    <AntSwitch />
                                 </Form.Item>
-                                <Form.Item
-                                    name="defaultOptionIndex"
-                                    label="Default option index (optional)"
-                                >
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        placeholder="Index of options array"
-                                    />
+
+                                <Form.Item name="defaultIndex" label="Default option (optional)">
+                                    <Radio.Group options={optionRadioChoices} />
                                 </Form.Item>
                             </>
                         )}
@@ -202,13 +233,16 @@ export default function PresetsTab({
                         {kind === "checkbox" && (
                             <>
                                 <Form.Item label="Options" required>
-                                    <Form.List name="options" initialValue={["", ""]}>
+                                    <Form.List
+                                        name="options"
+                                        initialValue={[{ label: "" }, { label: "" }]}
+                                    >
                                         {(fields, { add, remove }) => (
                                             <Space direction="vertical" style={{ width: "100%" }}>
                                                 {fields.map((f) => (
                                                     <Space key={f.key} align="baseline">
                                                         <Form.Item
-                                                            {...f}
+                                                            name={[f.name, "label"]}
                                                             rules={[
                                                                 {
                                                                     required: true,
@@ -216,8 +250,7 @@ export default function PresetsTab({
                                                                 },
                                                             ]}
                                                         >
-                                                            {" "}
-                                                            <Input placeholder="Label" />{" "}
+                                                            <Input placeholder="Label" />
                                                         </Form.Item>
                                                         {fields.length > 1 && (
                                                             <Button onClick={() => remove(f.name)}>
@@ -226,16 +259,23 @@ export default function PresetsTab({
                                                         )}
                                                     </Space>
                                                 ))}
-                                                <Button onClick={() => add("")}>Add option</Button>
+                                                <Button onClick={() => add({ label: "" })}>
+                                                    Add option
+                                                </Button>
                                             </Space>
                                         )}
                                     </Form.List>
                                 </Form.Item>
-                                <Form.Item name="minSelected" label="Min selected">
-                                    <Input type="number" min={0} />
-                                </Form.Item>
-                                <Form.Item name="maxSelected" label="Max selected">
-                                    <Input type="number" min={0} />
+
+                                <Form.Item name="range" label="Allowed selections (min — max)">
+                                    <Slider
+                                        range
+                                        min={0}
+                                        max={Math.max(0, optionCount)}
+                                        step={1}
+                                        marks={marks}
+                                        tooltip={{ open: false }}
+                                    />
                                 </Form.Item>
                             </>
                         )}

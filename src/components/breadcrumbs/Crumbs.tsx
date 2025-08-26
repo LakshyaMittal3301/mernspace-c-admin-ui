@@ -11,3 +11,4 @@ export const CreateUserCrumb = makeCrumb("Create", "/users/create");
 export const ProductsCrumb = makeCrumb("Products", "/products");
 export const PromosCrumb = makeCrumb("Promos", "/promos");
 export const RestaurantsCrumb = makeCrumb("Restaurants", "/restaurants");
+export const CategoriesCrumb = makeCrumb("Categories", "/categories");

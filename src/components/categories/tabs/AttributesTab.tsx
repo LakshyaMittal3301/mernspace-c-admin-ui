@@ -1,5 +1,4 @@
-// src/components/categories/tabs/AttributesTab.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     App,
     Alert,
@@ -9,6 +8,7 @@ import {
     Input,
     Modal,
     Radio,
+    Slider,
     Space,
     Switch as AntSwitch,
 } from "antd";
@@ -16,6 +16,8 @@ import type { Category } from "../../../http/services/catalogApi";
 import { addAttribute, type AttributeDef } from "../../../http/services/catalogApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import AttributeCard from "../AttributeCard";
+
+type OptionItem = { label: string };
 
 export default function AttributesTab({
     category,
@@ -30,6 +32,39 @@ export default function AttributesTab({
     const [addOpen, setAddOpen] = useState(false);
     const [kind, setKind] = useState<"radio" | "checkbox" | "switch">("radio");
     const [form] = Form.useForm();
+
+    // Always watch these (don’t call hooks conditionally)
+    const optionsWatch = Form.useWatch("options", form) as OptionItem[] | undefined;
+    const optionALabel = Form.useWatch("optionA", form) as string | undefined;
+    const optionBLabel = Form.useWatch("optionB", form) as string | undefined;
+
+    const optionCount = (optionsWatch ?? []).filter((o) => o && o.label?.trim()).length;
+
+    const optionRadioChoices =
+        (optionsWatch ?? []).map((o, idx) => ({
+            label: o?.label?.trim() ? o.label : `Option ${idx + 1}`,
+            value: idx,
+        })) || [];
+
+    // Slider marks 0..optionCount
+    const marks = useMemo(() => {
+        const m: Record<number, React.ReactNode> = {};
+        for (let i = 0; i <= optionCount; i++) m[i] = String(i);
+        return m;
+    }, [optionCount]);
+
+    // Keep checkbox range in sync with optionCount; default to [0, optionCount]
+    useEffect(() => {
+        const current = form.getFieldValue("range") as [number, number] | undefined;
+        const max = optionCount;
+        const safe: [number, number] = [
+            Math.min(current?.[0] ?? 0, max),
+            Math.min(current?.[1] ?? max, max),
+        ];
+        if (!current || current[0] !== safe[0] || current[1] !== safe[1]) {
+            form.setFieldsValue({ range: safe });
+        }
+    }, [optionCount, form]);
 
     const list = useMemo(() => {
         return (category.attributes ?? []).filter((a) => showDeleted || !a.isDeleted);
@@ -48,24 +83,26 @@ export default function AttributesTab({
 
     const submitAdd = async () => {
         const values = await form.validateFields();
+
         if (kind === "radio") {
             const payload = {
                 kind: "radio" as const,
                 name: values.name,
                 isRequired: !!values.isRequired,
-                options: (values.options || []).map((l: string) => ({ label: l })),
-                ...(typeof values.defaultOptionIndex === "number"
-                    ? { defaultOptionIndex: values.defaultOptionIndex }
+                options: (values.options || []).map((o: OptionItem) => ({ label: o.label })),
+                ...(typeof values.defaultIndex === "number"
+                    ? { defaultOptionIndex: values.defaultIndex }
                     : {}),
             };
             addMut.mutate(payload);
         } else if (kind === "checkbox") {
+            const [min, max] = (values.range ?? [undefined, undefined]) as [number?, number?];
             const payload = {
                 kind: "checkbox" as const,
                 name: values.name,
-                minSelected: values.minSelected ?? undefined,
-                maxSelected: values.maxSelected ?? undefined,
-                options: (values.options || []).map((l: string) => ({ label: l })),
+                minSelected: typeof min === "number" ? min : undefined,
+                maxSelected: typeof max === "number" ? max : undefined,
+                options: (values.options || []).map((o: OptionItem) => ({ label: o.label })),
             };
             addMut.mutate(payload);
         } else {
@@ -77,8 +114,8 @@ export default function AttributesTab({
                     { label: string },
                     { label: string }
                 ],
-                ...(typeof values.defaultOptionIndex === "number"
-                    ? { defaultOptionIndex: values.defaultOptionIndex }
+                ...(typeof values.defaultSwitch === "number"
+                    ? { defaultOptionIndex: values.defaultSwitch }
                     : {}),
             };
             addMut.mutate(payload);
@@ -168,13 +205,16 @@ export default function AttributesTab({
                         {kind === "radio" && (
                             <>
                                 <Form.Item label="Options" required>
-                                    <Form.List name="options" initialValue={["", ""]}>
+                                    <Form.List
+                                        name="options"
+                                        initialValue={[{ label: "" }, { label: "" }]}
+                                    >
                                         {(fields, { add, remove }) => (
                                             <Space direction="vertical" style={{ width: "100%" }}>
                                                 {fields.map((f) => (
                                                     <Space key={f.key} align="baseline">
                                                         <Form.Item
-                                                            {...f}
+                                                            name={[f.name, "label"]}
                                                             rules={[
                                                                 {
                                                                     required: true,
@@ -182,8 +222,7 @@ export default function AttributesTab({
                                                                 },
                                                             ]}
                                                         >
-                                                            {" "}
-                                                            <Input placeholder="Label" />{" "}
+                                                            <Input placeholder="Label" />
                                                         </Form.Item>
                                                         {fields.length > 1 && (
                                                             <Button onClick={() => remove(f.name)}>
@@ -192,11 +231,14 @@ export default function AttributesTab({
                                                         )}
                                                     </Space>
                                                 ))}
-                                                <Button onClick={() => add("")}>Add option</Button>
+                                                <Button onClick={() => add({ label: "" })}>
+                                                    Add option
+                                                </Button>
                                             </Space>
                                         )}
                                     </Form.List>
                                 </Form.Item>
+
                                 <Form.Item
                                     name="isRequired"
                                     label="Required"
@@ -204,15 +246,9 @@ export default function AttributesTab({
                                 >
                                     <AntSwitch />
                                 </Form.Item>
-                                <Form.Item
-                                    name="defaultOptionIndex"
-                                    label="Default option index (optional)"
-                                >
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        placeholder="Index of options array"
-                                    />
+
+                                <Form.Item name="defaultIndex" label="Default option (optional)">
+                                    <Radio.Group options={optionRadioChoices} />
                                 </Form.Item>
                             </>
                         )}
@@ -220,13 +256,16 @@ export default function AttributesTab({
                         {kind === "checkbox" && (
                             <>
                                 <Form.Item label="Options" required>
-                                    <Form.List name="options" initialValue={["", ""]}>
+                                    <Form.List
+                                        name="options"
+                                        initialValue={[{ label: "" }, { label: "" }]}
+                                    >
                                         {(fields, { add, remove }) => (
                                             <Space direction="vertical" style={{ width: "100%" }}>
                                                 {fields.map((f) => (
                                                     <Space key={f.key} align="baseline">
                                                         <Form.Item
-                                                            {...f}
+                                                            name={[f.name, "label"]}
                                                             rules={[
                                                                 {
                                                                     required: true,
@@ -234,8 +273,7 @@ export default function AttributesTab({
                                                                 },
                                                             ]}
                                                         >
-                                                            {" "}
-                                                            <Input placeholder="Label" />{" "}
+                                                            <Input placeholder="Label" />
                                                         </Form.Item>
                                                         {fields.length > 1 && (
                                                             <Button onClick={() => remove(f.name)}>
@@ -244,16 +282,23 @@ export default function AttributesTab({
                                                         )}
                                                     </Space>
                                                 ))}
-                                                <Button onClick={() => add("")}>Add option</Button>
+                                                <Button onClick={() => add({ label: "" })}>
+                                                    Add option
+                                                </Button>
                                             </Space>
                                         )}
                                     </Form.List>
                                 </Form.Item>
-                                <Form.Item name="minSelected" label="Min selected">
-                                    <Input type="number" min={0} />
-                                </Form.Item>
-                                <Form.Item name="maxSelected" label="Max selected">
-                                    <Input type="number" min={0} />
+
+                                <Form.Item name="range" label="Allowed selections (min — max)">
+                                    <Slider
+                                        range
+                                        min={0}
+                                        max={Math.max(0, optionCount)}
+                                        step={1}
+                                        marks={marks}
+                                        tooltip={{ open: false }}
+                                    />
                                 </Form.Item>
                             </>
                         )}
@@ -274,12 +319,13 @@ export default function AttributesTab({
                                 >
                                     <Input placeholder="e.g., No" />
                                 </Form.Item>
-                                <Form.Item
-                                    name="defaultOptionIndex"
-                                    label="Default option index (0 or 1)"
-                                    rules={[{ type: "number" }]}
-                                >
-                                    <Input type="number" min={0} max={1} />
+                                <Form.Item name="defaultSwitch" label="Default">
+                                    <Radio.Group
+                                        options={[
+                                            { label: optionALabel || "Option A", value: 0 },
+                                            { label: optionBLabel || "Option B", value: 1 },
+                                        ]}
+                                    />
                                 </Form.Item>
                             </>
                         )}
