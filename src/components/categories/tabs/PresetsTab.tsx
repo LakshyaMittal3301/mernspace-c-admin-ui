@@ -1,5 +1,16 @@
 import { useMemo, useState } from "react";
-import { App, Alert, Button, Card, Form, Input, Modal, Radio, Space } from "antd";
+import {
+    App,
+    Alert,
+    Button,
+    Card,
+    Form,
+    Input,
+    Modal,
+    Radio,
+    Space,
+    Switch as AntSwitch,
+} from "antd";
 import type { Category } from "../../../http/services/catalogApi";
 import { addPreset, type ModificationGroup } from "../../../http/services/catalogApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -74,11 +85,7 @@ export default function PresetsTab({
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Space>
-                    <input
-                        type="checkbox"
-                        checked={showDeleted}
-                        onChange={(e) => setShowDeleted(e.target.checked)}
-                    />
+                    <AntSwitch checked={showDeleted} onChange={setShowDeleted} />
                     <span>Show deleted nested items</span>
                 </Space>
                 {!readOnly && (
