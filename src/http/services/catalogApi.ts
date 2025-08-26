@@ -7,9 +7,14 @@ export type AttributeKind = "radio" | "checkbox" | "switch";
 export type ProductStatus = "draft" | "active" | "archived";
 
 export type Timestamp = string; // ISO UTC
-
 export type ImageRef = { key: string; url: string };
 
+/** Small helper to accept wrapped or raw payloads */
+function unwrap<T>(data: any, key: string): T {
+    return data && Object.prototype.hasOwnProperty.call(data, key) ? (data[key] as T) : (data as T);
+}
+
+/** ---------- Category types ---------- */
 export type AttributeOption = {
     id: Id;
     label: string;
@@ -52,7 +57,7 @@ export type CategoryListItem = {
     id: Id;
     name: string;
     isDeleted: boolean;
-    deletedAt?: Timestamp | null;
+    deletedAt?: Timestamp | null; // omitted when not deleted
     createdAt: Timestamp;
     updatedAt: Timestamp;
 };
@@ -62,6 +67,7 @@ export type Category = CategoryListItem & {
     modificationPresets: ModificationGroup[];
 };
 
+/** ---------- Product types ---------- */
 export type AttributeValue =
     | { defId: Id; kind: "radio"; selectedOptionId: Id | null }
     | { defId: Id; kind: "switch"; selectedOptionId: Id }
@@ -124,25 +130,29 @@ export type PageInfo = { page: number; limit: number; total: number; hasNextPage
 
 const CATALOG = PATHS.CATALOG;
 
-/** ---------- Categories ---------- */
+/** =========================
+ *        CATEGORIES
+ * ========================= */
 export async function listCategories(params?: {
     includeDeleted?: boolean;
 }): Promise<CategoryListItem[]> {
     const qs = new URLSearchParams();
     if (params?.includeDeleted) qs.set("includeDeleted", "true");
-    const path = qs.toString() ? `${CATALOG}/categories?${qs.toString()}` : `${CATALOG}/categories`;
-    const { data } = await api.get<{ categories: CategoryListItem[] }>(path);
+    const url = qs.toString() ? `${CATALOG}/categories?${qs.toString()}` : `${CATALOG}/categories`;
+    // Backend returns: { categories: [...] }
+    const { data } = await api.get<{ categories: CategoryListItem[] }>(url);
     return Array.isArray(data?.categories) ? data.categories : [];
 }
 
 export async function getCategory(id: Id, opts?: { includeDeleted?: boolean }): Promise<Category> {
     const qs = new URLSearchParams();
     if (opts?.includeDeleted) qs.set("includeDeleted", "true");
-    const path = qs.toString()
-        ? `${CATALOG}/categories/${id}?${qs}`
+    const url = qs.toString()
+        ? `${CATALOG}/categories/${id}?${qs.toString()}`
         : `${CATALOG}/categories/${id}`;
-    const { data } = await api.get<Category>(path);
-    return data;
+    // Backend returns: { category: {...} }
+    const { data } = await api.get<{ category: Category } | Category>(url);
+    return unwrap<Category>(data, "category");
 }
 
 export type CreateCategoryPayload = {
@@ -188,13 +198,18 @@ export type CreateCategoryPayload = {
 };
 
 export async function createCategory(payload: CreateCategoryPayload): Promise<Category> {
-    const { data } = await api.post<Category>(`${CATALOG}/categories`, payload);
-    return data;
+    // Backend returns: { category }
+    const { data } = await api.post<{ category: Category }>(`${CATALOG}/categories`, payload);
+    return unwrap<Category>(data, "category");
 }
 
 export async function updateCategory(id: Id, payload: { name: string }): Promise<Category> {
-    const { data } = await api.patch<Category>(`${CATALOG}/categories/${id}`, payload);
-    return data;
+    // Backend returns: { category }
+    const { data } = await api.patch<{ category: Category }>(
+        `${CATALOG}/categories/${id}`,
+        payload
+    );
+    return unwrap<Category>(data, "category");
 }
 
 export async function deleteCategory(id: Id): Promise<void> {
@@ -226,11 +241,12 @@ export async function addAttribute(
               defaultOptionIndex?: 0 | 1;
           }
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category } with 201
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/attributes`,
         attribute
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function updateAttribute(
@@ -240,11 +256,12 @@ export async function updateAttribute(
         | { name?: string; isRequired?: boolean } // radio
         | { name?: string; minSelected?: number; maxSelected?: number } // checkbox
 ): Promise<Category> {
-    const { data } = await api.patch<Category>(
+    // Backend returns: { category }
+    const { data } = await api.patch<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/attributes/${attrId}`,
         payload
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function deleteAttribute(categoryId: Id, attrId: Id): Promise<void> {
@@ -257,11 +274,12 @@ export async function addAttributeOptions(
     attrId: Id,
     options: { label: string }[]
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category }
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/attributes/${attrId}/options`,
         { options }
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function updateAttributeOption(
@@ -270,11 +288,12 @@ export async function updateAttributeOption(
     optId: Id,
     payload: { label: string }
 ): Promise<Category> {
-    const { data } = await api.patch<Category>(
+    // Backend returns: { category }
+    const { data } = await api.patch<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/attributes/${attrId}/options/${optId}`,
         payload
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function deleteAttributeOption(categoryId: Id, attrId: Id, optId: Id): Promise<void> {
@@ -286,11 +305,12 @@ export async function setAttributeDefault(
     attrId: Id,
     optionId: Id | null
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category }
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/attributes/${attrId}/default`,
         { optionId }
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 /** Category → Presets */
@@ -312,11 +332,12 @@ export async function addPreset(
               maxSelected?: number;
           }
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category } with 201
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/presets`,
         preset
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function updatePreset(
@@ -326,11 +347,12 @@ export async function updatePreset(
         | { name?: string; isRequired?: boolean } // radio
         | { name?: string; minSelected?: number; maxSelected?: number } // checkbox
 ): Promise<Category> {
-    const { data } = await api.patch<Category>(
+    // Backend returns: { category }
+    const { data } = await api.patch<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/presets/${presetId}`,
         payload
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function deletePreset(categoryId: Id, presetId: Id): Promise<void> {
@@ -342,11 +364,12 @@ export async function addPresetOptions(
     presetId: Id,
     options: { label: string }[]
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category }
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/presets/${presetId}/options`,
         { options }
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function updatePresetOption(
@@ -355,11 +378,12 @@ export async function updatePresetOption(
     optId: Id,
     payload: { label: string }
 ): Promise<Category> {
-    const { data } = await api.patch<Category>(
+    // Backend returns: { category }
+    const { data } = await api.patch<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/presets/${presetId}/options/${optId}`,
         payload
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
 export async function deletePresetOption(categoryId: Id, presetId: Id, optId: Id): Promise<void> {
@@ -371,14 +395,17 @@ export async function setPresetDefault(
     presetId: Id,
     optionId: Id | null
 ): Promise<Category> {
-    const { data } = await api.post<Category>(
+    // Backend returns: { category }
+    const { data } = await api.post<{ category: Category }>(
         `${CATALOG}/categories/${categoryId}/presets/${presetId}/default`,
         { optionId }
     );
-    return data;
+    return unwrap<Category>(data, "category");
 }
 
-/** ---------- Products ---------- */
+/** =========================
+ *          PRODUCTS
+ * ========================= */
 export type CreateProductPayload = {
     // Admin must provide tenantId; Manager's is ignored even if sent
     tenantId?: string;
@@ -408,8 +435,9 @@ export type CreateProductPayload = {
 };
 
 export async function createProduct(payload: CreateProductPayload): Promise<Product> {
-    const { data } = await api.post<Product>(`${CATALOG}/products`, payload);
-    return data;
+    // Tolerate { product } or raw
+    const { data } = await api.post<{ product: Product } | Product>(`${CATALOG}/products`, payload);
+    return unwrap<Product>(data, "product");
 }
 
 export type UpdateProductPayload = Partial<{
@@ -422,8 +450,12 @@ export type UpdateProductPayload = Partial<{
 }>;
 
 export async function updateProduct(id: Id, payload: UpdateProductPayload): Promise<Product> {
-    const { data } = await api.patch<Product>(`${CATALOG}/products/${id}`, payload);
-    return data;
+    // Tolerate { product } or raw
+    const { data } = await api.patch<{ product: Product } | Product>(
+        `${CATALOG}/products/${id}`,
+        payload
+    );
+    return unwrap<Product>(data, "product");
 }
 
 export async function deleteProduct(id: Id): Promise<void> {
@@ -455,108 +487,29 @@ export async function listProducts(params: ListProductsParams = {}): Promise<Lis
     if (params.limit) qs.set("limit", String(params.limit));
     if (params.sortBy) qs.set("sortBy", params.sortBy);
     if (params.sortOrder) qs.set("sortOrder", params.sortOrder);
-    const url = qs.toString() ? `${CATALOG}/products?${qs}` : `${CATALOG}/products`;
-    const { data } = await api.get<ListProductsResponse>(url);
-    return data;
+    const url = qs.toString() ? `${CATALOG}/products?${qs.toString()}` : `${CATALOG}/products`;
+
+    // Prefer the documented shape { items, pageInfo }, but tolerate a wrapper { products: { items, pageInfo } }
+    const { data } = await api.get<ListProductsResponse | { products: ListProductsResponse }>(url);
+
+    const maybeWrapped = data as { products?: ListProductsResponse };
+    return maybeWrapped.products ?? (data as ListProductsResponse);
 }
 
 export async function getProduct(id: Id, opts?: { includeDeleted?: boolean }): Promise<Product> {
     const qs = new URLSearchParams();
     if (opts?.includeDeleted) qs.set("includeDeleted", "true");
-    const url = qs.toString() ? `${CATALOG}/products/${id}?${qs}` : `${CATALOG}/products/${id}`;
-    const { data } = await api.get<Product>(url);
-    return data;
+    const url = qs.toString()
+        ? `${CATALOG}/products/${id}?${qs.toString()}`
+        : `${CATALOG}/products/${id}`;
+    // Tolerate { product } or raw
+    const { data } = await api.get<{ product: Product } | Product>(url);
+    return unwrap<Product>(data, "product");
 }
 
-/** Product → Modifications */
-export async function addModification(
-    productId: Id,
-    mod:
-        | {
-              kind: "radio";
-              name: string;
-              isBase?: boolean;
-              isRequired?: boolean;
-              options: { label: string; price: number }[];
-              defaultOptionIndex?: number;
-          }
-        | {
-              kind: "checkbox";
-              name: string;
-              options: { label: string; price: number }[];
-              minSelected?: number;
-              maxSelected?: number;
-          }
-): Promise<Product> {
-    const { data } = await api.post<Product>(`${CATALOG}/products/${productId}/modifications`, mod);
-    return data;
-}
-
-export async function updateModification(
-    productId: Id,
-    modId: Id,
-    payload:
-        | { name?: string; isRequired?: boolean } // radio
-        | { name?: string; minSelected?: number; maxSelected?: number } // checkbox
-): Promise<Product> {
-    const { data } = await api.patch<Product>(
-        `${CATALOG}/products/${productId}/modifications/${modId}`,
-        payload
-    );
-    return data;
-}
-
-export async function deleteModification(productId: Id, modId: Id): Promise<void> {
-    await api.delete(`${CATALOG}/products/${productId}/modifications/${modId}`);
-}
-
-export async function setBaseRadio(productId: Id, modId: Id): Promise<Product> {
-    const { data } = await api.post<Product>(
-        `${CATALOG}/products/${productId}/modifications/${modId}/base`,
-        {}
-    );
-    return data;
-}
-
-/** Product → Modification Options */
-export async function addModificationOptions(
-    productId: Id,
-    modId: Id,
-    options: { label: string; price: number }[]
-): Promise<Product> {
-    const { data } = await api.post<Product>(
-        `${CATALOG}/products/${productId}/modifications/${modId}/options`,
-        { options }
-    );
-    return data;
-}
-
-export async function updateModificationOption(
-    productId: Id,
-    modId: Id,
-    optId: Id,
-    payload: { label?: string; price?: number }
-): Promise<Product> {
-    const { data } = await api.patch<Product>(
-        `${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}`,
-        payload
-    );
-    return data;
-}
-
-export async function deleteModificationOption(productId: Id, modId: Id, optId: Id): Promise<void> {
-    await api.delete(`${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}`);
-}
-
-export async function setDefaultRadioOption(productId: Id, modId: Id, optId: Id): Promise<Product> {
-    const { data } = await api.post<Product>(
-        `${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}/default`,
-        {}
-    );
-    return data;
-}
-
-/** ---------- Media (presign) ---------- */
+/** =========================
+ *           MEDIA
+ * ========================= */
 export type PresignPayload = {
     purpose: "productImage";
     filename: string;
@@ -571,6 +524,11 @@ export type PresignResponse = {
 };
 
 export async function presignUpload(payload: PresignPayload): Promise<PresignResponse> {
-    const { data } = await api.post<PresignResponse>(`${CATALOG}/media/presign`, payload);
-    return data;
+    // Tolerate raw or { presign: {...} } (future-proof)
+    const { data } = await api.post<PresignResponse | { presign: PresignResponse }>(
+        `${CATALOG}/media/presign`,
+        payload
+    );
+    const maybeWrapped = data as { presign?: PresignResponse };
+    return maybeWrapped.presign ?? (data as PresignResponse);
 }
