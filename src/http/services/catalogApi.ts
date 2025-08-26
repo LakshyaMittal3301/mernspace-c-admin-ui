@@ -532,3 +532,93 @@ export async function presignUpload(payload: PresignPayload): Promise<PresignRes
     const maybeWrapped = data as { presign?: PresignResponse };
     return maybeWrapped.presign ?? (data as PresignResponse);
 }
+
+/** Product → Modifications */
+export async function addModification(
+    productId: Id,
+    mod:
+        | {
+              kind: "radio";
+              name: string;
+              isRequired?: boolean;
+              isBase?: boolean;
+              options?: { label: string; price: number }[];
+              defaultOptionIndex?: number;
+          }
+        | {
+              kind: "checkbox";
+              name: string;
+              minSelected?: number;
+              maxSelected?: number;
+              options?: { label: string; price: number }[];
+          }
+): Promise<Product> {
+    const { data } = await api.post<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications`,
+        mod
+    );
+    return unwrap<Product>(data, "product");
+}
+
+export async function updateModification(
+    productId: Id,
+    modId: Id,
+    payload:
+        | { name?: string; isRequired?: boolean } // radio
+        | { name?: string; minSelected?: number; maxSelected?: number } // checkbox
+): Promise<Product> {
+    const { data } = await api.patch<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications/${modId}`,
+        payload
+    );
+    return unwrap<Product>(data, "product");
+}
+
+export async function deleteModification(productId: Id, modId: Id): Promise<void> {
+    await api.delete(`${CATALOG}/products/${productId}/modifications/${modId}`);
+}
+
+export async function setBaseRadio(productId: Id, modId: Id): Promise<Product> {
+    const { data } = await api.post<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications/${modId}/base`,
+        {}
+    );
+    return unwrap<Product>(data, "product");
+}
+
+export async function addModificationOptions(
+    productId: Id,
+    modId: Id,
+    options: { label: string; price: number }[]
+): Promise<Product> {
+    const { data } = await api.post<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications/${modId}/options`,
+        { options }
+    );
+    return unwrap<Product>(data, "product");
+}
+
+export async function updateModificationOption(
+    productId: Id,
+    modId: Id,
+    optId: Id,
+    payload: { label?: string; price?: number }
+): Promise<Product> {
+    const { data } = await api.patch<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}`,
+        payload
+    );
+    return unwrap<Product>(data, "product");
+}
+
+export async function deleteModificationOption(productId: Id, modId: Id, optId: Id): Promise<void> {
+    await api.delete(`${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}`);
+}
+
+export async function setDefaultRadioOption(productId: Id, modId: Id, optId: Id): Promise<Product> {
+    const { data } = await api.post<{ product: Product } | Product>(
+        `${CATALOG}/products/${productId}/modifications/${modId}/options/${optId}/default`,
+        {}
+    );
+    return unwrap<Product>(data, "product");
+}
