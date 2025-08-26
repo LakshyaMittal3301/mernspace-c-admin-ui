@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/ProductsPage.tsx
+import { useMemo, useState } from "react";
 import {
     App,
-    Avatar,
     Button,
     Card,
+    Checkbox,
     Form,
     Image,
     Input,
     Result,
     Select,
     Space,
-    Switch,
     Table,
     Tag,
     Tooltip,
@@ -25,71 +25,74 @@ import {
     PlusOutlined,
     PictureOutlined,
 } from "@ant-design/icons";
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, keepPreviousData, useQueryClient } from "@tanstack/react-query";
 
 import ListHeader from "../components/common/ListHeader";
-import ConfirmModal from "../components/common/ConfirmModal";
 import TableActions from "../components/common/TableActions";
+import ConfirmModal from "../components/common/ConfirmModal";
 import ProductDrawer from "../components/products/ProductDrawer";
 
 import { useAuthStore } from "../stores/auth";
-import type { Role, Tenant } from "../types";
+import type { Role } from "../types";
+
 import {
     listProducts,
     deleteProduct,
-    listCategories,
-    type ProductListItem,
     type ListProductsParams,
+    type ListProductsResponse,
+    type ProductListItem,
 } from "../http/services/catalogApi";
+import { listCategories, type CategoryListItem } from "../http/services/catalogApi";
 import { getTenants, type TenantsResponse } from "../http/services/authApi";
 
-const STATUS_OPTIONS = [
-    { value: "draft", label: "Draft" },
-    { value: "active", label: "Active" },
-    { value: "archived", label: "Archived" },
-] as const;
+let STATUS_OPTIONS = [
+    { label: "Draft", value: "draft" },
+    { label: "Active", value: "active" },
+    { label: "Archived", value: "archived" },
+];
 
 export default function ProductsPage() {
     const { message } = App.useApp();
-    const qc = useQueryClient();
+    const queryClient = useQueryClient();
     const user = useAuthStore((s) => s.user);
-    const role: Role | undefined = user?.role;
+    const role = user?.role as Role | undefined;
     const isAdmin = role === "admin";
 
-    // filters
+    // Filters
     const [qDraft, setQDraft] = useState("");
     const [q, setQ] = useState("");
-    const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+    const [categoryId, setCategoryId] = useState<string | "all">("all");
     const [status, setStatus] = useState<Array<"draft" | "active" | "archived">>([]);
-    const [tenantId, setTenantId] = useState<string | undefined>(undefined);
     const [includeDeleted, setIncludeDeleted] = useState(false);
+    const [tenantId, setTenantId] = useState<string | "all">("all");
 
-    // table state (server powered)
+    // Server-side paging/sort (supported by API)
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(20);
     const [sortBy, setSortBy] = useState<"name" | "createdAt" | "updatedAt">("createdAt");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-    // dropdown data
-    const { data: cats } = useQuery({
+    // Options
+    const { data: catsData } = useQuery({
         queryKey: ["categories", { includeDeleted: false }],
         queryFn: () => listCategories({ includeDeleted: false }),
         staleTime: 5 * 60 * 1000,
     });
+    const categories = catsData ?? [];
 
-    const { data: tenants } = useQuery<TenantsResponse>({
-        queryKey: ["tenants"],
+    const { data: tenantsData } = useQuery<TenantsResponse>({
+        queryKey: ["tenant-list"],
         queryFn: getTenants,
         enabled: isAdmin,
         staleTime: 5 * 60 * 1000,
     });
 
-    const params: ListProductsParams = useMemo(
+    const params = useMemo<ListProductsParams>(
         () => ({
-            tenantId: isAdmin ? tenantId : undefined,
-            categoryId: categoryId || undefined,
+            tenantId: isAdmin && tenantId !== "all" ? tenantId : undefined,
+            categoryId: categoryId !== "all" ? categoryId : undefined,
             status: status.length ? status : undefined,
-            includeDeleted: isAdmin ? includeDeleted : false,
+            includeDeleted: isAdmin ? includeDeleted : undefined,
             q: q.trim() || undefined,
             page,
             limit,
@@ -99,8 +102,8 @@ export default function ProductsPage() {
         [isAdmin, tenantId, categoryId, status, includeDeleted, q, page, limit, sortBy, sortOrder]
     );
 
-    const { data, isPending, isFetching, isError, refetch } = useQuery({
-        queryKey: ["products", params],
+    const { data, isPending, isFetching, isError, refetch } = useQuery<ListProductsResponse>({
+        queryKey: ["product-list", params],
         queryFn: () => listProducts(params),
         placeholderData: keepPreviousData,
         staleTime: 60_000,
@@ -115,89 +118,88 @@ export default function ProductsPage() {
         onError: (err: any) => message.error(err?.message || "Failed to delete product"),
     });
 
-    const items = data?.items ?? [];
-    const pageInfo = data?.pageInfo;
-
-    // Drawer
+    // Drawer state
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [mode, setMode] = useState<"create" | "edit">("create");
     const [editingId, setEditingId] = useState<string | null>(null);
-
     const openCreate = () => {
         setMode("create");
         setEditingId(null);
         setDrawerOpen(true);
     };
-
-    const openEdit = (id: string) => {
+    const openEdit = (id: string, archivedOrDeleted: boolean) => {
+        // Prefetch detail so drawer feels instant
+        queryClient.prefetchQuery({
+            queryKey: [
+                "product",
+                id,
+                { includeDeleted: archivedOrDeleted || (isAdmin && includeDeleted) },
+            ],
+            queryFn: () =>
+                import("../http/services/catalogApi").then(({ getProduct }) =>
+                    getProduct(id, {
+                        includeDeleted: archivedOrDeleted || (isAdmin && includeDeleted),
+                    })
+                ),
+            staleTime: 60_000,
+        });
         setMode("edit");
         setEditingId(id);
         setDrawerOpen(true);
     };
 
+    const rows = data?.items ?? [];
+    const pageInfo = data?.pageInfo ?? { page: 1, limit: 20, total: 0, hasNextPage: false };
+
     const columns: ColumnsType<ProductListItem> = [
         {
-            title: "",
-            key: "thumb",
-            width: 56,
-            render: (_v, r) =>
-                r.image?.url ? (
-                    <Image
-                        src={r.image.url}
-                        width={40}
-                        height={40}
-                        style={{ objectFit: "cover", borderRadius: 6 }}
-                        preview={false}
-                    />
-                ) : (
-                    <Avatar shape="square" size={40} icon={<PictureOutlined />} />
-                ),
-        },
-        {
-            title: "Name",
-            dataIndex: "name",
+            title: "Product",
             key: "name",
-            render: (v, r) => (
-                <Typography.Link strong onClick={() => openEdit(r.id)}>
-                    {v}
-                </Typography.Link>
+            render: (_v, r) => (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {r.image?.url ? (
+                        <Image
+                            width={40}
+                            height={40}
+                            src={r.image.url}
+                            alt={r.name}
+                            fallback=""
+                            style={{ objectFit: "cover", borderRadius: 6 }}
+                            preview={false}
+                        />
+                    ) : (
+                        <div
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 6,
+                                background: "var(--ant-color-fill-tertiary)",
+                                display: "grid",
+                                placeItems: "center",
+                            }}
+                        >
+                            <PictureOutlined />
+                        </div>
+                    )}
+                    <div>
+                        <Typography.Link
+                            style={{ fontWeight: 600 }}
+                            onClick={() => openEdit(r.id, r.isDeleted || r.status === "archived")}
+                        >
+                            {r.name}
+                        </Typography.Link>
+                        <div style={{ fontSize: 12, color: "var(--ant-color-text-tertiary)" }}>
+                            {r.description ? (
+                                <Tooltip title={r.description}>
+                                    <span>{r.description}</span>
+                                </Tooltip>
+                            ) : (
+                                "—"
+                            )}
+                        </div>
+                    </div>
+                </div>
             ),
-            sorter: true,
-        },
-        {
-            title: "Status",
-            dataIndex: "status",
-            key: "status",
-            render: (s: ProductListItem["status"]) => {
-                const map: Record<string, { color: string; text: string }> = {
-                    draft: { color: "default", text: "Draft" },
-                    active: { color: "green", text: "Active" },
-                    archived: { color: "orange", text: "Archived" },
-                };
-                const t = map[s] ?? map.draft;
-                return <Tag color={t.color as any}>{t.text}</Tag>;
-            },
-        },
-        {
-            title: "Base Price",
-            dataIndex: "basePrice",
-            key: "basePrice",
-            render: (v: number) => (Number.isFinite(v) ? `₹ ${v}` : "—"),
-        },
-        {
-            title: "Category",
-            dataIndex: "categoryId",
-            key: "categoryId",
-            render: (cid: string) => {
-                const n = cats?.find((c) => c.id === cid)?.name;
-                return n ? (
-                    <Tooltip title={n}>
-                        <span>{n}</span>
-                    </Tooltip>
-                ) : (
-                    "—"
-                );
-            },
         },
         ...(isAdmin
             ? [
@@ -206,63 +208,79 @@ export default function ProductsPage() {
                       dataIndex: "tenantId",
                       key: "tenantId",
                       render: (t: string) => <Tag>{t}</Tag>,
-                  } as any,
+                  },
               ]
             : []),
+        {
+            title: "Status",
+            dataIndex: "status",
+            key: "status",
+            render: (s: ProductListItem["status"]) => {
+                const map = {
+                    draft: { color: "default", text: "Draft" },
+                    active: { color: "success", text: "Active" },
+                    archived: { color: "warning", text: "Archived" },
+                } as const;
+                const it = map[s] ?? map.draft;
+                return <Tag color={it.color as any}>{it.text}</Tag>;
+            },
+            filters: STATUS_OPTIONS.map((o) => ({ text: o.label, value: o.value })),
+        },
+        {
+            title: "Base Price",
+            dataIndex: "basePrice",
+            key: "basePrice",
+            render: (v: number) => (Number.isFinite(v) ? `₹ ${v}` : "—"),
+            sorter: true,
+        },
         {
             title: "Created",
             dataIndex: "createdAt",
             key: "createdAt",
             sorter: true,
-            render: (v: string) => formatDate(v),
+            render: formatDate,
         },
         {
             title: "Updated",
             dataIndex: "updatedAt",
             key: "updatedAt",
             sorter: true,
-            render: (v: string) => formatDate(v),
+            render: formatDate,
         },
         {
             title: "Actions",
             key: "actions",
-            render: (_v, r) => {
-                const disabled = !!r.isDeleted;
-                return (
-                    <TableActions>
-                        <Button size="small" icon={<EyeOutlined />} onClick={() => openEdit(r.id)}>
-                            View
-                        </Button>
-                        <Button
-                            size="small"
-                            icon={<EditOutlined />}
-                            onClick={() => openEdit(r.id)}
-                            disabled={disabled}
-                        >
-                            Edit
-                        </Button>
-                        <Button
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            disabled={disabled}
-                            onClick={() => {
-                                setDeleting(r);
-                                setDeleteOpen(true);
-                            }}
-                        >
-                            Delete
-                        </Button>
-                    </TableActions>
-                );
-            },
+            render: (_v, r) => (
+                <TableActions>
+                    <Button
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() => openEdit(r.id, r.isDeleted || r.status === "archived")}
+                    >
+                        View
+                    </Button>
+                    <Button
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => openEdit(r.id, r.isDeleted || r.status === "archived")}
+                    >
+                        Edit
+                    </Button>
+                    <Button
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => {
+                            setDeleting(r);
+                            setDeleteOpen(true);
+                        }}
+                    >
+                        Delete
+                    </Button>
+                </TableActions>
+            ),
         },
     ];
-
-    useEffect(() => {
-        // prefetch drawer product on hover or filter change if needed (optional)
-        return () => {};
-    }, []);
 
     if (isError) {
         return (
@@ -285,15 +303,15 @@ export default function ProductsPage() {
     }
 
     const pagination: TablePaginationConfig = {
-        current: page,
-        pageSize: limit,
-        total: pageInfo?.total,
+        current: pageInfo.page,
+        pageSize: pageInfo.limit,
+        total: pageInfo.total,
         showSizeChanger: true,
         pageSizeOptions: ["10", "20", "50", "100"],
         showTotal: (t) => `Total ${t} products`,
     };
 
-    // delete modal
+    // Delete modal
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState<ProductListItem | null>(null);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -324,33 +342,34 @@ export default function ProductsPage() {
 
                                 <Form.Item>
                                     <Select
-                                        allowClear
                                         placeholder="Category"
                                         value={categoryId}
                                         onChange={(v) => {
-                                            setCategoryId(v || undefined);
+                                            setCategoryId(v);
                                             setPage(1);
                                         }}
                                         style={{ width: 220 }}
-                                        options={(cats ?? []).map((c) => ({
-                                            value: c.id,
-                                            label: c.name,
-                                        }))}
+                                        options={[
+                                            { value: "all", label: "All categories" },
+                                            ...categories.map((c: CategoryListItem) => ({
+                                                value: c.id,
+                                                label: c.name,
+                                            })),
+                                        ]}
                                     />
                                 </Form.Item>
 
                                 <Form.Item>
                                     <Select
                                         mode="multiple"
-                                        allowClear
                                         placeholder="Status"
                                         value={status}
-                                        onChange={(vals) => {
-                                            setStatus(vals as any);
+                                        onChange={(v) => {
+                                            setStatus(v);
                                             setPage(1);
                                         }}
-                                        style={{ width: 220 }}
-                                        options={STATUS_OPTIONS as any}
+                                        style={{ width: 240 }}
+                                        options={STATUS_OPTIONS}
                                     />
                                 </Form.Item>
 
@@ -358,31 +377,32 @@ export default function ProductsPage() {
                                     <>
                                         <Form.Item>
                                             <Select
-                                                allowClear
                                                 placeholder="Tenant"
                                                 value={tenantId}
                                                 onChange={(v) => {
-                                                    setTenantId(v || undefined);
+                                                    setTenantId(v);
                                                     setPage(1);
                                                 }}
-                                                style={{ width: 220 }}
-                                                options={(tenants?.tenants ?? []).map(
-                                                    (t: Tenant) => ({
+                                                style={{ width: 240 }}
+                                                options={[
+                                                    { value: "all", label: "All tenants" },
+                                                    ...(tenantsData?.tenants ?? []).map((t) => ({
                                                         value: String(t.id),
                                                         label: t.name,
-                                                    })
-                                                )}
+                                                    })),
+                                                ]}
                                             />
                                         </Form.Item>
-
-                                        <Form.Item label="Show deleted" colon={false}>
-                                            <Switch
+                                        <Form.Item>
+                                            <Checkbox
                                                 checked={includeDeleted}
-                                                onChange={(checked) => {
-                                                    setIncludeDeleted(checked);
+                                                onChange={(e) => {
+                                                    setIncludeDeleted(e.target.checked);
                                                     setPage(1);
                                                 }}
-                                            />
+                                            >
+                                                Show deleted
+                                            </Checkbox>
                                         </Form.Item>
                                     </>
                                 )}
@@ -391,7 +411,6 @@ export default function ProductsPage() {
                                     <Button
                                         icon={<ReloadOutlined />}
                                         onClick={() => {
-                                            setPage(1);
                                             setQ(qDraft.trim());
                                             refetch();
                                         }}
@@ -415,27 +434,28 @@ export default function ProductsPage() {
                 <Table<ProductListItem>
                     rowKey="id"
                     loading={isPending || isFetching}
-                    columns={columns}
-                    dataSource={items}
+                    columns={columns as ColumnsType<any>}
+                    dataSource={rows}
                     pagination={pagination}
-                    onChange={(p, _f, sorter: any) => {
-                        if (p.current && p.current !== page) setPage(p.current);
-                        if (p.pageSize && p.pageSize !== limit) setLimit(p.pageSize);
+                    onChange={(p, _filters, sorter: any) => {
+                        const nextPage = p.current ?? 1;
+                        const nextLimit = p.pageSize ?? 20;
+                        if (nextPage !== page) setPage(nextPage);
+                        if (nextLimit !== limit) setLimit(nextLimit);
+
                         const nextOrder =
                             sorter?.order === "ascend"
                                 ? "asc"
                                 : sorter?.order === "descend"
                                 ? "desc"
                                 : sortOrder;
-                        const nextKey =
+                        const nextSort =
                             sorter?.field === "name"
                                 ? "name"
-                                : sorter?.field === "createdAt"
-                                ? "createdAt"
                                 : sorter?.field === "updatedAt"
                                 ? "updatedAt"
-                                : sortBy;
-                        setSortBy(nextKey);
+                                : "createdAt";
+                        setSortBy(nextSort);
                         setSortOrder(nextOrder);
                     }}
                     locale={{ emptyText: "No products yet" }}
@@ -453,23 +473,23 @@ export default function ProductsPage() {
                     setEditingId(null);
                 }}
                 onCreated={(p) => {
+                    // immediately switch into edit mode for the new product
                     setMode("edit");
                     setEditingId(p.id);
-                    // Optimistically add to cache
-                    qc.invalidateQueries({ queryKey: ["products"] });
                     message.success("Product created");
+                    refetch();
                 }}
                 onUpdated={() => {
-                    qc.invalidateQueries({ queryKey: ["products"] });
+                    refetch();
                 }}
                 onDeleted={() => {
                     setDrawerOpen(false);
                     setEditingId(null);
-                    qc.invalidateQueries({ queryKey: ["products"] });
+                    refetch();
                 }}
             />
 
-            {/* Delete */}
+            {/* Delete modal */}
             <ConfirmModal
                 open={deleteOpen}
                 title="Delete product?"
@@ -477,8 +497,8 @@ export default function ProductsPage() {
                 confirming={confirmingDelete}
                 description={
                     <>
-                        This will soft-delete <strong>{deleting?.name}</strong>. It will be hidden
-                        by default and read-only.
+                        This will soft delete <strong>{deleting?.name}</strong>. It will be hidden
+                        by default.
                     </>
                 }
                 onCancel={() => {
